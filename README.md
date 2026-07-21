@@ -14,6 +14,9 @@
 
 <br/>
 
+> Uygulama `https://takipskt.netlify.app/` adresinde açılır.
+
+
 </div>
 
 ---
@@ -118,7 +121,6 @@ npm install
 # 3. Geliştirme sunucusunu başlat
 npm run dev
 ```
-> Uygulama `https://takipskt.netlify.app/` adresinde açılır.
 
 ### Derleme (Build)
 
