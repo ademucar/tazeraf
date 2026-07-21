@@ -4,7 +4,7 @@
 
 
 
-> Uygulama `https://takipskt.netlify.app/` adresinde açılır.
+🔗 **Canlı site:** [takipskt.netlify.app](https://takipskt.netlify.app/)
 
 
 </div>
