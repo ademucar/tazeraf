@@ -2,9 +2,7 @@
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:38bdf8,50:3b82f6,100:0d1025&height=200&section=header&text=SKT%20Takip&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Marketler%20için%20Son%20Kullanma%20Tarihi%20Takip%20Sistemi&descAlignY=58&descSize=18" width="100%"/>
 
-<a href="https://git.io/typing-svg">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1000&color=38BDF8&center=true&vCenter=true&width=650&lines=Gerçek+Zamanlı+SKT+Takip+Uygulaması;React+%7C+Vite+%7C+Supabase;Auth+%2B+Storage+%2B+Realtime;Mobil+Uyumlu+%7C+PWA+Dostu" alt="Typing SVG" />
-</a>
+
 
 <br/>
 
@@ -145,8 +143,8 @@ npm run build      # dist/ klasörü oluşur, Netlify'a yayınlanır
 **Adem Uçar**
 Matematik ve Bilgisayar Bilimleri
 
-[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ademucar)
-[![Portfolio](https://img.shields.io/badge/Portfolio-7b3fe4?style=for-the-badge&logo=netlify&logoColor=white)](https://ademucarr.netlify.app)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/adem-u%C3%A7ar-39501731a/)
+[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=flat&logo=instagram&logoColor=white)](https://www.instagram.com/ademucarr_/)
 
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1025,50:3b82f6,100:38bdf8&height=100&section=footer" width="100%"/>
 
