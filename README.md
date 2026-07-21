@@ -1,16 +1,153 @@
-# React + Vite
+<div align="center">
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:38bdf8,50:3b82f6,100:0d1025&height=200&section=header&text=SKT%20Takip&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Marketler%20için%20Son%20Kullanma%20Tarihi%20Takip%20Sistemi&descAlignY=58&descSize=18" width="100%"/>
 
-Currently, two official plugins are available:
+<a href="https://git.io/typing-svg">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=1000&color=38BDF8&center=true&vCenter=true&width=650&lines=Gerçek+Zamanlı+SKT+Takip+Uygulaması;React+%7C+Vite+%7C+Supabase;Auth+%2B+Storage+%2B+Realtime;Mobil+Uyumlu+%7C+PWA+Dostu" alt="Typing SVG" />
+</a>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+<br/>
 
-## React Compiler
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Netlify](https://img.shields.io/badge/Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+<br/>
 
-## Expanding the Oxlint configuration
+</div>
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+---
+
+## 📌 Proje Hakkında
+
+**SKT Takip**, marketlerin ve işletmelerin ürünlerinin **son kullanma tarihlerini** deftere yazmak yerine dijital olarak takip etmesini sağlayan bir web uygulamasıdır.
+
+Her ürün, fotoğrafı ve son kullanma tarihiyle kaydedilir; kalan güne göre otomatik olarak **Acil / Yaklaşan / Rahat** diye renklenir. Tarihi yaklaşan ürünler ana ekrana düşer, personel ürünü toplayınca kim topladığı kaydedilir ve **aynı anda bütün cihazlarda güncellenir**.
+
+> Bu proje gerçek bir market ihtiyacından yola çıkarak, tek backend yazmadan (Supabase) hızlı ve güvenilir bir çok-kullanıcılı sistem kurmak amacıyla geliştirilmiştir.
+
+---
+
+## ✨ Özellikler
+
+| | Özellik | Açıklama |
+|---|---------|----------|
+| 📷 | **Fotoğraflı Ürün Kaydı** | Ürün adı, tarih ve fotoğrafla ekleme (fotoğraf tarayıcıda otomatik sıkıştırılır) |
+| 🚦 | **Otomatik Durum** | Kalan güne göre Acil / Yaklaşan / Rahat renklendirme |
+| 🔄 | **Gerçek Zamanlı Senkron** | Biri ürünü toplayınca diğer cihazlarda anında düşer |
+| 👥 | **Personel Takibi** | Her ürün için "kim ekledi / kim topladı" bilgisi |
+| 🗂️ | **Kategoriler** | Ürünleri kategorilere ayırma ve kategori bazlı görüntüleme |
+| 🔍 | **Arama & Filtre** | Ürün arama + Yaklaşanlar / Tümü / Geçenler / Toplandı sekmeleri |
+| 🔐 | **İşletme Girişi** | E-posta/şifre ile güvenli giriş; her işletme yalnızca kendi verisini görür (RLS) |
+| 📱 | **Mobil Uyumlu** | Telefon ve masaüstünde tam ekran, duyarlı arayüz |
+
+---
+
+## 🛠️ Kullanılan Teknolojiler
+
+<div align="center">
+
+| Katman | Teknoloji |
+|--------|-----------|
+| **Frontend** | React (Vite) |
+| **Veritabanı** | PostgreSQL (Supabase) |
+| **Kimlik Doğrulama** | Supabase Auth |
+| **Dosya Depolama** | Supabase Storage |
+| **Gerçek Zamanlı** | Supabase Realtime |
+| **Güvenlik** | Row Level Security (RLS) |
+| **Dağıtım (Deploy)** | Netlify |
+
+</div>
+
+---
+
+## 🏗️ Sistem Mimarisi
+
+```
+┌──────────────┐   ┌──────────────┐   ┌────────────────────────────┐
+│   KULLANICI  │   │   FRONTEND   │   │          SUPABASE          │
+│ Web / Mobil  │──▶│ React (Vite) │──▶│  Auth · Postgres · Storage │
+│              │   │  (Netlify)   │   │        · Realtime          │
+└──────────────┘   └──────────────┘   └────────────────────────────┘
+```
+
+**Veritabanı İlişkileri (ER):**
+
+```
+ISLETME (1) ──< (∞) PERSONEL
+    │
+    ├──< (∞) KATEGORI
+    │
+    └──< (∞) URUN ──▶ (ekleyen / toplayan) PERSONEL
+                 └──▶ (kategori) KATEGORI
+```
+
+- Bir **işletmenin** birden çok **personeli** ve **kategorisi** olabilir
+- Her **ürün** bir işletmeye aittir; ekleyen ve toplayan personeli ile kategorisine bağlıdır
+- Ürünün durumu (Acil/Yaklaşan/Rahat/Geçmiş) tarihten **anlık hesaplanır**, veritabanında tutulmaz
+
+---
+
+## 📂 Veritabanı Tabloları
+
+| Tablo | Açıklama |
+|-------|----------|
+| `isletme` | İşletme bilgisi (auth kullanıcısı = işletme) |
+| `personel` | İşletmeye bağlı personel listesi |
+| `kategori` | Ürün kategorileri |
+| `urun` | Ürünler: ad, foto, SKT, durum, ekleyen/toplayan, kategori |
+
+---
+
+## 🚀 Kurulum ve Çalıştırma (Lokal)
+
+### Gereksinimler
+- [Node.js](https://nodejs.org/) (LTS sürümü)
+- Bir [Supabase](https://supabase.com/) projesi (URL + anon key)
+
+### Adımlar
+
+```bash
+# 1. Bağımlılıkları kur
+npm install
+
+# 2. Kök dizinde .env dosyası oluştur:
+#    VITE_SUPABASE_URL=...
+#    VITE_SUPABASE_ANON_KEY=...
+
+# 3. Geliştirme sunucusunu başlat
+npm run dev
+```
+> Uygulama `https://takipskt.netlify.app/` adresinde açılır.
+
+### Derleme (Build)
+
+```bash
+npm run build      # dist/ klasörü oluşur, Netlify'a yayınlanır
+```
+
+---
+
+## 🔐 Güvenlik Notları
+
+- Her işletme **yalnızca kendi verisini** görür — Supabase **Row Level Security (RLS)** politikaları ile
+- Ürün fotoğrafları işletmenin kendi klasörüne yüklenir; başka işletme erişemez
+- Gizli anahtarlar `.env` dosyasında tutulur, koda ve repoya yazılmaz
+
+---
+
+<div align="center">
+
+### 👨‍💻 Geliştirici
+
+**Adem Uçar**
+Matematik ve Bilgisayar Bilimleri
+
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/ademucar)
+[![Portfolio](https://img.shields.io/badge/Portfolio-7b3fe4?style=for-the-badge&logo=netlify&logoColor=white)](https://ademucarr.netlify.app)
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1025,50:3b82f6,100:38bdf8&height=100&section=footer" width="100%"/>
+
+</div>
