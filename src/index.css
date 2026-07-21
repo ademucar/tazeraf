@@ -9,13 +9,14 @@
   --acil:#f87171; --yaklasan:#fbbf24; --rahat:#34d399; --gecmis:#94a3b8;
   color-scheme: dark;
 }
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-html, body, #root { min-height:100%; }
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; -webkit-tap-highlight-color:transparent; }
+html { background:#0a0f1c; -webkit-text-size-adjust:100%; }
+html, body, #root { min-height:100vh; min-height:100dvh; width:100%; max-width:100%; overflow-x:hidden; }
 body { background:linear-gradient(180deg,#0b1220,#0a0f1c); color:var(--text); -webkit-font-smoothing:antialiased; }
-button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+button { touch-action:manipulation; }
 
 /* ---------- LAYOUT ---------- */
-.layout { display:flex; min-height:100vh; }
+.layout { display:flex; min-height:100vh; width:100%; max-width:100%; overflow-x:hidden; }
 .sidebar {
   width:250px; position:fixed; top:0; left:0; bottom:0; z-index:30;
   background:#0d1626; border-right:1px solid var(--border);
@@ -36,12 +37,11 @@ button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .nav-item.logout { margin-top:auto; color:var(--muted); border:1px solid var(--border); }
 .nav-item.logout:hover { color:var(--acil); border-color:rgba(248,113,113,.4); background:transparent; }
 
-.main { flex:1; margin-left:250px; padding:22px 30px 60px; min-width:0; }
+.main { flex:1; margin-left:250px; padding:22px 30px 60px; min-width:0; max-width:100%; }
 
 .topbar { display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:22px; }
 .menu-btn { display:none; margin-right:auto; width:42px; height:42px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--sub); font-size:20px; cursor:pointer; }
 .date-pill { display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:10px 16px; color:var(--sub); font-size:14px; font-weight:600; }
-
 .menu-backdrop { display:none; }
 
 /* ---------- STATS ---------- */
@@ -63,7 +63,7 @@ button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .tab { padding:9px 16px; border-radius:9px; border:none; background:transparent; color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .tab:hover { color:#fff; }
 .tab.active { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; }
-.search { flex:1; min-width:160px; margin-left:auto; max-width:340px; padding:11px 16px; font-size:15px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:12px; outline:none; }
+.search { flex:1; min-width:160px; margin-left:auto; max-width:340px; padding:11px 16px; font-size:16px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:12px; outline:none; }
 .search:focus { border-color:var(--accent); }
 .add-btn { width:auto; padding:11px 22px; white-space:nowrap; }
 
@@ -95,7 +95,7 @@ button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 /* ---------- FORM / INPUTS ---------- */
 .form-title { font-size:18px; font-weight:800; color:#fff; margin-bottom:16px; }
 label.field { display:block; font-size:15px; color:var(--sub); margin-bottom:7px; margin-top:6px; }
-input, select { width:100%; padding:12px 14px; font-size:15px; color:var(--text); background:var(--panel-3); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; outline:none; }
+input, select { width:100%; padding:12px 14px; font-size:16px; color:var(--text); background:var(--panel-3); border:1px solid var(--border); border-radius:10px; margin-bottom:14px; outline:none; }
 select { color-scheme:dark; cursor:pointer; }
 select option { background:#0f1a2e; color:var(--text); }
 input:focus, select:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(59,130,246,.15); }
@@ -116,14 +116,12 @@ input[type=file]::file-selector-button { background:var(--panel); color:var(--su
 .empty { text-align:center; color:var(--muted); padding:40px 0; }
 .empty .emoji { font-size:44px; display:block; margin-bottom:10px; }
 
-/* ---------- KATEGORİ SAYFASI ---------- */
-.kat-row { padding:14px 0; border-bottom:1px solid var(--border); }
-.kat-head { display:flex; justify-content:space-between; align-items:center; }
+/* ---------- KATEGORİ (tıklanabilir marka) ---------- */
 .kat-ad { font-size:17px; font-weight:700; color:#fff; }
-.kat-ad small { color:var(--muted); font-weight:600; font-size:14px; }
-.kat-urunler { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-.kat-chip { font-size:14px; color:var(--sub); background:var(--panel-3); border:1px solid var(--border); padding:6px 12px; border-radius:9px; }
-.kat-bos { font-size:14px; color:var(--muted); margin-top:8px; font-style:italic; }
+.kat-row2 { display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); }
+.kat-tik { flex:1; display:flex; justify-content:space-between; align-items:center; background:none; border:none; cursor:pointer; padding:16px 0; text-align:left; }
+.kat-tik:hover .kat-ad { color:var(--accent-2); }
+.kat-tik small { color:var(--muted); font-weight:600; font-size:14px; }
 
 /* ---------- MODAL ---------- */
 .modal-overlay { position:fixed; inset:0; background:rgba(3,7,18,.75); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:60; padding:16px; }
@@ -137,9 +135,17 @@ input[type=file]::file-selector-button { background:var(--panel); color:var(--su
 .msg { color:var(--acil); font-size:14px; text-align:center; margin-top:12px; }
 .msg.ok { color:var(--rahat); }
 
-/* ---------- AUTH (giriş ekranı aynı) ---------- */
+/* ---------- AUTH (giriş/kayıt sekmeli) ---------- */
 .auth { max-width:400px; margin:56px auto 0; padding:0 20px; }
 .auth h1 { font-size:34px; text-align:center; margin-bottom:24px; font-weight:800; letter-spacing:1px; background:linear-gradient(135deg,var(--accent-2),var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.auth-brand { font-size:32px; text-align:center; font-weight:800; letter-spacing:1px; margin-bottom:20px; background:linear-gradient(135deg,var(--accent-2),var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.auth-tabs { display:flex; gap:6px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:18px; }
+.auth-tab { flex:1; padding:12px; border:none; border-radius:9px; background:transparent; color:var(--muted); font-size:15px; font-weight:700; cursor:pointer; }
+.auth-tab.active { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; }
+.auth-title { font-size:16px; color:var(--sub); text-align:center; margin-bottom:18px; font-weight:600; }
+.auth-switch { text-align:center; color:var(--muted); font-size:14px; margin-top:16px; }
+.link-btn { border:none; background:none; color:var(--accent-2); font-weight:700; cursor:pointer; font-size:14px; padding:0; }
+.link-btn:hover { text-decoration:underline; }
 
 /* ---------- MOBİL ---------- */
 @media (max-width:1023px) {
@@ -160,24 +166,3 @@ input[type=file]::file-selector-button { background:var(--panel); color:var(--su
   .stats { grid-template-columns:1fr 1fr; }
   .stat-num { font-size:28px; }
 }
-
-
-/* ---------- GİRİŞ EKRANI (mod sekmeli) ---------- */
-.auth-brand { font-size:32px; text-align:center; font-weight:800; letter-spacing:1px; margin-bottom:20px; background:linear-gradient(135deg,var(--accent-2),var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.auth-tabs { display:flex; gap:6px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:18px; }
-.auth-tab { flex:1; padding:12px; border:none; border-radius:9px; background:transparent; color:var(--muted); font-size:15px; font-weight:700; cursor:pointer; }
-.auth-tab.active { background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; }
-.auth-title { font-size:16px; color:var(--sub); text-align:center; margin-bottom:18px; font-weight:600; }
-.auth-switch { text-align:center; color:var(--muted); font-size:14px; margin-top:16px; }
-.link-btn { border:none; background:none; color:var(--accent-2); font-weight:700; cursor:pointer; font-size:14px; padding:0; }
-.link-btn:hover { text-decoration:underline; }
-
-
-/* ---------- MOBİL: SİYAH ALAN + ROTASYON DÜZELTME ---------- */
-html { background:#0a0f1c; }
-html, body { width:100%; max-width:100%; overflow-x:hidden; }
-body { min-height:100vh; min-height:100dvh; }
-.layout { width:100%; max-width:100%; overflow-x:hidden; }
-.main { max-width:100%; }
-/* iOS'ta input'a dokununca ekran zumlamasın (dönünce de bozulmasın) */
-input, select, .search { font-size:16px; }

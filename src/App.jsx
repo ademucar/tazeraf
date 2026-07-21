@@ -56,6 +56,7 @@ export default function App() {
   const [toplaModal, setToplaModal] = useState(null)
   const [toplaPersonelId, setToplaPersonelId] = useState('')
   const [authModu, setAuthModu] = useState('giris')
+  const [secilenKategori, setSecilenKategori] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -70,7 +71,7 @@ export default function App() {
       .then(({ data }) => { setIsletme(data); setYukleniyor(false) })
   }, [session])
 
-  useEffect(() => { if (isletme) { personelYukle(); kategoriYukle(); urunYukle() } }, [isletme])
+  useEffect(() => { if (isletme) { personelYukle(); kategoriYukle(); urunYukle(); eskiToplananlariTemizle() } }, [isletme])
 
   useEffect(() => {
     if (!isletme) return
@@ -96,6 +97,21 @@ export default function App() {
     setUrunListesi(data || [])
   }
 
+  // Toplanan ürünler, toplanma tarihinden 7 gün sonra otomatik silinir (foto dahil)
+  async function eskiToplananlariTemizle() {
+    const sinir = new Date(Date.now() - 7 * 86400000).toISOString()
+    const { data } = await supabase.from('urun').select('*').eq('toplandi', true).lt('toplanma_tarihi', sinir)
+    if (!data || data.length === 0) return
+    for (const u of data) {
+      if (u.foto_url && u.foto_url.includes('/urun-fotolari/')) {
+        const yol = u.foto_url.split('/urun-fotolari/')[1]
+        if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
+      }
+      await supabase.from('urun').delete().eq('id', u.id)
+    }
+    urunYukle()
+  }
+
   async function kayitOl() {
     setMesaj('')
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
@@ -104,7 +120,7 @@ export default function App() {
     if (error) { setMesaj('❌ ' + error.message); return }
     await supabase.auth.signOut()
     setSifre(''); setAuthModu('giris')
-    setMesaj('✅ Kayıt başarılı.')
+    setMesaj('✅ Kayıt başarılı. Şimdi bu e-posta ve şifreyle giriş yap.')
   }
   async function girisYap() {
     setMesaj('')
@@ -112,13 +128,10 @@ export default function App() {
     const { error } = await supabase.auth.signInWithPassword({ email, password: sifre })
     if (error) setMesaj('❌ E-posta veya şifre hatalı.')
   }
-
-
-
   async function cikisYap() {
     await supabase.auth.signOut()
     setEmail(''); setSifre(''); setIsletmeAdi(''); setMesaj('')
-    setAyarlarAcik(false); setMenuAcik(false); setUrunEkleAcik(false); setSayfa('ana'); setToplaModal(null)
+    setAyarlarAcik(false); setMenuAcik(false); setUrunEkleAcik(false); setSayfa('ana'); setToplaModal(null); setSecilenKategori(null)
   }
 
   async function isletmeKaydet() {
@@ -216,8 +229,7 @@ export default function App() {
 
   if (yukleniyor) return <div style={{padding:24, color:'var(--muted)', fontFamily:'Inter,sans-serif'}}>Yükleniyor...</div>
 
-  
-   if (!session) {
+  if (!session) {
     const girisMi = authModu === 'giris'
     return (
       <div className="auth">
@@ -274,7 +286,7 @@ export default function App() {
   }
 
   const bugunStr = new Date().toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric', weekday:'long' })
-  const navGit = (s) => { setSayfa(s); setMenuAcik(false) }
+  const navGit = (s) => { setSayfa(s); setMenuAcik(false); setSecilenKategori(null) }
 
   const urunKarti = (u) => {
     const d = durumHesapla(u.skt_tarihi)
@@ -389,24 +401,54 @@ export default function App() {
 
         {sayfa === 'kategoriler' && (
           <div className="page-panel">
-            <h2 className="form-title">Kategoriler ({kategoriListesi.length})</h2>
-            {kategoriListesi.length === 0 && <p style={{color:'var(--muted)'}}>Henüz kategori yok.</p>}
-            {kategoriListesi.map(k => {
-              const kUrunler = urunListesi.filter(u => u.kategori_id === k.id)
+            {!secilenKategori && (
+              <>
+                <h2 className="form-title">Kategoriler ({kategoriListesi.length})</h2>
+                <p style={{color:'var(--muted)', fontSize:14, marginBottom:12}}>Bir markaya dokun; ürünleri en yakın SKT üstte olacak şekilde sıralı görürsün.</p>
+                {kategoriListesi.length === 0 && <p style={{color:'var(--muted)'}}>Henüz kategori yok.</p>}
+                {kategoriListesi.map(k => {
+                  const sayi = urunListesi.filter(u => u.kategori_id === k.id).length
+                  return (
+                    <div key={k.id} className="kat-row2">
+                      <button className="kat-tik" onClick={()=>setSecilenKategori(k.id)}>
+                        <span className="kat-ad">{k.ad}</span>
+                        <small>{sayi} ürün ›</small>
+                      </button>
+                      <button className="icon-del" onClick={()=>kategoriSil(k.id)}>×</button>
+                    </div>
+                  )
+                })}
+                <input placeholder="Kategori adı (ör. Süt Ürünleri)" value={yeniKategori} onChange={e=>setYeniKategori(e.target.value)} style={{marginTop:16}} />
+                <button className="btn" onClick={kategoriEkle} disabled={!yeniKategori.trim()} style={{marginBottom:0}}>Kategori ekle</button>
+              </>
+            )}
+            {secilenKategori && (() => {
+              const kat = kategoriListesi.find(k => k.id === secilenKategori)
+              const katUrunler = urunListesi
+                .filter(u => u.kategori_id === secilenKategori)
+                .sort((a,b) => a.skt_tarihi.localeCompare(b.skt_tarihi))
               return (
-                <div key={k.id} className="kat-row">
-                  <div className="kat-head">
-                    <span className="kat-ad">{k.ad} <small>({kUrunler.length} ürün)</small></span>
-                    <button className="icon-del" onClick={()=>kategoriSil(k.id)}>×</button>
-                  </div>
-                  {kUrunler.length > 0
-                    ? <div className="kat-urunler">{kUrunler.map(u => <span key={u.id} className="kat-chip">{u.ad}</span>)}</div>
-                    : <div className="kat-bos">Bu kategoride ürün yok.</div>}
-                </div>
+                <>
+                  <button className="btn ghost" style={{width:'auto', padding:'8px 16px', marginBottom:16}} onClick={()=>setSecilenKategori(null)}>← Kategoriler</button>
+                  <h2 className="form-title">{kat ? kat.ad : 'Kategori'} ({katUrunler.length})</h2>
+                  {katUrunler.length === 0 && <div className="empty"><span className="emoji">📦</span>Bu markada ürün yok.</div>}
+                  {katUrunler.map(u => {
+                    const d = durumHesapla(u.skt_tarihi)
+                    return (
+                      <div key={u.id} className={'product ' + d.key}>
+                        <img className="thumb" src={u.foto_url} alt={u.ad} />
+                        <div className="info">
+                          <div className="name">{u.ad}</div>
+                          <div className="meta">SKT: {tarihTR(u.skt_tarihi)} · {gunMetni(d.gun)}</div>
+                          <div className="by">Ekleyen: {personelAdlari[u.ekleyen_id] || '—'}</div>
+                          {u.toplandi && <div className="picked">✓ Toplayan: {personelAdlari[u.toplayan_id] || '—'}</div>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
               )
-            })}
-            <input placeholder="Kategori adı (ör. Süt Ürünleri)" value={yeniKategori} onChange={e=>setYeniKategori(e.target.value)} style={{marginTop:16}} />
-            <button className="btn" onClick={kategoriEkle} disabled={!yeniKategori.trim()} style={{marginBottom:0}}>Kategori ekle</button>
+            })()}
           </div>
         )}
       </main>
