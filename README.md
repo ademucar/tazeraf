@@ -90,43 +90,7 @@ ISLETME (1) ──< (∞) PERSONEL
 | `kategori` | Ürün kategorileri |
 | `urun` | Ürünler: ad, foto, SKT, durum, ekleyen/toplayan, kategori |
 
----
 
-## 🚀 Kurulum ve Çalıştırma (Lokal)
-
-### Gereksinimler
-- [Node.js](https://nodejs.org/) (LTS sürümü)
-- Bir [Supabase](https://supabase.com/) projesi (URL + anon key)
-
-### Adımlar
-
-```bash
-# 1. Bağımlılıkları kur
-npm install
-
-# 2. Kök dizinde .env dosyası oluştur:
-#    VITE_SUPABASE_URL=...
-#    VITE_SUPABASE_ANON_KEY=...
-
-# 3. Geliştirme sunucusunu başlat
-npm run dev
-```
-
-### Derleme (Build)
-
-```bash
-npm run build      # dist/ klasörü oluşur, Netlify'a yayınlanır
-```
-
----
-
-## 🔐 Güvenlik Notları
-
-- Her işletme **yalnızca kendi verisini** görür — Supabase **Row Level Security (RLS)** politikaları ile
-- Ürün fotoğrafları işletmenin kendi klasörüne yüklenir; başka işletme erişemez
-- Gizli anahtarlar `.env` dosyasında tutulur, koda ve repoya yazılmaz
-
----
 
 <div align="center">
 
