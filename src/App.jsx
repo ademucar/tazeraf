@@ -251,6 +251,23 @@ export default function App() {
           </button>
         </p>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+
+        {/* Geliştirici Bilgisi (Ekrana Sabitlendi) */}
+        <div style={{ position: 'fixed', bottom: '24px', left: 0, width: '100%', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
+          <p>
+            Developed by{" "}
+            <a 
+              href="https://ademucar.com.tr/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={{ color: '#cbd5e1', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
+              onMouseOver={(e) => e.target.style.color = '#38bdf8'}
+              onMouseOut={(e) => e.target.style.color = '#cbd5e1'}
+            >
+              Adem Uçar
+            </a>
+          </p>
+        </div>
       </div>
     )
   }
