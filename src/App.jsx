@@ -3,6 +3,7 @@ import imageCompression from 'browser-image-compression'
 import { supabase } from './supabaseClient'
 
 function durumHesapla(sktTarihi) {
+  if (!sktTarihi) return { ad:'—', key:'gecmis', gun:0 }
   const bugun = new Date(); bugun.setHours(0, 0, 0, 0)
   const skt = new Date(sktTarihi + 'T00:00:00')
   const gun = Math.round((skt - bugun) / 86400000)
@@ -17,6 +18,7 @@ function gunMetni(gun) {
   return `${gun} gün kaldı`
 }
 function tarihTR(s) {
+  if (!s) return '—'
   const [y,m,d] = s.split('-')
   return `${d}.${m}.${y}`
 }
@@ -43,6 +45,7 @@ export default function App() {
   const [sktTarihi, setSktTarihi] = useState('')
   const [urunKategoriId, setUrunKategoriId] = useState('')
   const [foto, setFoto] = useState(null)
+  const [fotoOnizleme, setFotoOnizleme] = useState('')
   const [kaydediliyor, setKaydediliyor] = useState(false)
 
   const [aktifSekme, setAktifSekme] = useState('tumu')
@@ -55,12 +58,22 @@ export default function App() {
   const [urunEkleAcik, setUrunEkleAcik] = useState(false)
   const [toplaModal, setToplaModal] = useState(null)
   const [toplaPersonelId, setToplaPersonelId] = useState('')
+  const [modalMesaj, setModalMesaj] = useState('')
+  const [ayarMesaj, setAyarMesaj] = useState('')
+  const [sayfaMesaj, setSayfaMesaj] = useState('')
   const [authModu, setAuthModu] = useState('giris')
+  const [yeniSifre, setYeniSifre] = useState('')
   const [secilenKategori, setSecilenKategori] = useState(null)
+
+  const [sifreYenileme, setSifreYenileme] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    const { data: sub } = supabase.auth.onAuthStateChange((e, s) => {
+      // Şifre sıfırlama linkiyle gelindiğinde önce yeni şifre belirlenir
+      if (e === 'PASSWORD_RECOVERY') { setSifreYenileme(true); setMesaj('') }
+      setSession(s)
+    })
     return () => sub.subscription.unsubscribe()
   }, [])
 
@@ -77,7 +90,7 @@ export default function App() {
     if (!isletme) return
     const kanal = supabase
       .channel('urun-degisiklik')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'urun' }, () => { urunYukle() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'urun', filter: `isletme_id=eq.${isletme.id}` }, () => { urunYukle() })
       .subscribe()
     return () => { supabase.removeChannel(kanal) }
   }, [isletme])
@@ -116,11 +129,30 @@ export default function App() {
     setMesaj('')
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
     if (sifre.length < 6) { setMesaj('❌ Şifre en az 6 karakter olmalı.'); return }
-    const { error } = await supabase.auth.signUp({ email, password: sifre })
+    const { data, error } = await supabase.auth.signUp({ email, password: sifre })
     if (error) { setMesaj('❌ ' + error.message); return }
+    // Supabase'de e-posta doğrulama açıksa oturum dönmez; kullanıcıyı doğru yönlendir
+    const dogrulamaGerekli = !data.session
     await supabase.auth.signOut()
     setSifre(''); setAuthModu('giris')
-    setMesaj('✅ Kayıt başarılı. Şimdi bu e-posta ve şifreyle giriş yap.')
+    setMesaj(dogrulamaGerekli
+      ? '✅ Kayıt alındı. E-postana gelen doğrulama bağlantısına tıkla, sonra giriş yap.'
+      : '✅ Kayıt başarılı. Şimdi bu e-posta ve şifreyle giriş yap.')
+  }
+  async function sifreSifirlaGonder() {
+    setMesaj('')
+    if (!email.trim()) { setMesaj('❌ Şifreni sıfırlamak için e-postanı gir.'); return }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin })
+    if (error) { setMesaj('❌ ' + error.message); return }
+    setMesaj('✅ Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
+  }
+  async function yeniSifreKaydet() {
+    setMesaj('')
+    if (yeniSifre.length < 6) { setMesaj('❌ Şifre en az 6 karakter olmalı.'); return }
+    const { error } = await supabase.auth.updateUser({ password: yeniSifre })
+    if (error) { setMesaj('❌ ' + error.message); return }
+    setYeniSifre(''); setSifreYenileme(false)
+    setMesaj('✅ Şifren güncellendi.')
   }
   async function girisYap() {
     setMesaj('')
@@ -130,7 +162,7 @@ export default function App() {
   }
   async function cikisYap() {
     await supabase.auth.signOut()
-    setEmail(''); setSifre(''); setIsletmeAdi(''); setMesaj('')
+    setEmail(''); setSifre(''); setIsletmeAdi(''); setMesaj(''); setModalMesaj(''); setAyarMesaj('')
     setAyarlarAcik(false); setMenuAcik(false); setUrunEkleAcik(false); setSayfa('ana'); setToplaModal(null); setSecilenKategori(null)
   }
 
@@ -142,25 +174,26 @@ export default function App() {
     else setIsletme(data)
   }
 
-  function ayarlariAc() { setDuzenMarketAdi(isletme.ad); setMesaj(''); setAyarlarAcik(true); setMenuAcik(false) }
+  function ayarlariAc() { setDuzenMarketAdi(isletme.ad); setAyarMesaj(''); setAyarlarAcik(true); setMenuAcik(false) }
   async function marketAdiKaydet() {
     const yeni = duzenMarketAdi.trim()
     if (!yeni) return
     const { data, error } = await supabase.from('isletme').update({ ad: yeni }).eq('id', session.user.id).select().single()
-    if (error) { setMesaj('❌ ' + error.message); return }
-    setIsletme(data); setMesaj('✅ Market adı güncellendi.')
+    if (error) { setAyarMesaj('❌ ' + error.message); return }
+    setIsletme(data); setAyarMesaj('✅ Market adı güncellendi.')
   }
 
   async function personelEkle() {
     const ad = yeniPersonel.trim()
     if (!ad) return
     const { error } = await supabase.from('personel').insert({ isletme_id: session.user.id, ad })
-    if (error) { setMesaj('❌ ' + error.message); return }
-    setYeniPersonel(''); personelYukle()
+    if (error) { setAyarMesaj('❌ ' + error.message); return }
+    setYeniPersonel(''); setAyarMesaj(''); personelYukle()
   }
   async function personelSil(id) {
-    await supabase.from('personel').delete().eq('id', id)
-    if (id === aktifPersonelId) aktifPersonelDegistir('')
+    const { error } = await supabase.from('personel').delete().eq('id', id)
+    if (error) { setAyarMesaj('❌ ' + error.message); return }
+    if (String(id) === String(aktifPersonelId)) aktifPersonelDegistir('')
     personelYukle()
   }
 
@@ -168,13 +201,23 @@ export default function App() {
     const ad = yeniKategori.trim()
     if (!ad) return
     const { error } = await supabase.from('kategori').insert({ isletme_id: session.user.id, ad })
-    if (error) { setMesaj('❌ ' + error.message); return }
-    setYeniKategori(''); kategoriYukle()
+    if (error) { setSayfaMesaj('❌ ' + error.message); return }
+    setYeniKategori(''); setSayfaMesaj(''); kategoriYukle()
   }
   async function kategoriSil(id) {
-    await supabase.from('kategori').delete().eq('id', id)
-    if (id === urunKategoriId) setUrunKategoriId('')
+    const { error } = await supabase.from('kategori').delete().eq('id', id)
+    if (error) { setSayfaMesaj('❌ ' + error.message); return }
+    if (String(id) === String(urunKategoriId)) setUrunKategoriId('')
     kategoriYukle(); urunYukle()
+  }
+
+  function fotoSec(dosya) {
+    setFotoOnizleme(onceki => { if (onceki) URL.revokeObjectURL(onceki); return dosya ? URL.createObjectURL(dosya) : '' })
+    setFoto(dosya)
+  }
+  function fotoTemizle() {
+    fotoSec(null)
+    for (const id of ['fotoKamera', 'fotoGaleri']) { const el = document.getElementById(id); if (el) el.value = '' }
   }
 
   async function urunEkle() {
@@ -193,28 +236,27 @@ export default function App() {
         kategori_id: urunKategoriId || null
       })
       if (insErr) throw insErr
-      setUrunAdi(''); setSktTarihi(''); setFoto(null); setUrunKategoriId('')
-      const inp = document.getElementById('fotoInput'); if (inp) inp.value = ''
+      setUrunAdi(''); setSktTarihi(''); setUrunKategoriId(''); fotoTemizle()
       urunYukle()
       setMesaj('✅ Ürün eklendi.')
     } catch (e) { setMesaj('❌ ' + e.message) } finally { setKaydediliyor(false) }
   }
 
-  function toplaBaslat(urun) { setToplaPersonelId(aktifPersonelId || ''); setMesaj(''); setToplaModal(urun) }
+  function toplaBaslat(urun) { setToplaPersonelId(aktifPersonelId || ''); setModalMesaj(''); setToplaModal(urun) }
   async function toplaOnayla() {
     if (!toplaPersonelId || !toplaModal) return
     const { error } = await supabase.from('urun').update({
       toplandi: true, toplayan_id: toplaPersonelId, toplanma_tarihi: new Date().toISOString()
     }).eq('id', toplaModal.id)
-    if (error) { setMesaj('❌ ' + error.message); return }
+    if (error) { setModalMesaj('❌ ' + error.message); return }
     aktifPersonelDegistir(toplaPersonelId)
     setToplaModal(null)
     urunYukle()
   }
   async function toplamaGeriAl(urun) {
     const { error } = await supabase.from('urun').update({ toplandi: false, toplayan_id: null, toplanma_tarihi: null }).eq('id', urun.id)
-    if (error) { setMesaj('❌ ' + error.message); return }
-    urunYukle()
+    if (error) { setSayfaMesaj('❌ ' + error.message); return }
+    setSayfaMesaj(''); urunYukle()
   }
   async function urunSil(urun) {
     if (!window.confirm(`"${urun.ad}" silinsin mi?`)) return
@@ -223,14 +265,53 @@ export default function App() {
       if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
     }
     const { error } = await supabase.from('urun').delete().eq('id', urun.id)
-    if (error) { setMesaj('❌ ' + error.message); return }
-    urunYukle()
+    if (error) { setSayfaMesaj('❌ ' + error.message); return }
+    setSayfaMesaj(''); urunYukle()
   }
 
   if (yukleniyor) return <div style={{padding:24, color:'var(--muted)', fontFamily:'Inter,sans-serif'}}>Yükleniyor...</div>
 
+  const gelistirici = (
+    <div className="dev-credit">
+      Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
+    </div>
+  )
+
+  if (sifreYenileme) {
+    return (
+      <div className="auth">
+        <div className="auth-brand">SKT Takip</div>
+        <h2 className="auth-title">Yeni şifreni belirle</h2>
+        <label className="field">Yeni şifre</label>
+        <input type="password" placeholder="En az 6 karakter" value={yeniSifre} onChange={e=>setYeniSifre(e.target.value)} />
+        <button className="btn" onClick={yeniSifreKaydet} disabled={yeniSifre.length < 6} style={{marginBottom:0}}>Şifreyi kaydet</button>
+        {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+        {gelistirici}
+      </div>
+    )
+  }
+
   if (!session) {
     const girisMi = authModu === 'giris'
+    const sifirlaMi = authModu === 'sifirla'
+
+    if (sifirlaMi) {
+      return (
+        <div className="auth">
+          <div className="auth-brand">SKT Takip</div>
+          <h2 className="auth-title">Şifreni sıfırla</h2>
+          <p className="auth-hint">Hesabının e-posta adresini gir; sana sıfırlama bağlantısı gönderelim.</p>
+          <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
+          <button className="btn" onClick={sifreSifirlaGonder} disabled={!email.trim()} style={{marginBottom:0}}>Sıfırlama bağlantısı gönder</button>
+          <p className="auth-switch">
+            <button className="link-btn" onClick={()=>{ setAuthModu('giris'); setMesaj('') }}>← Girişe dön</button>
+          </p>
+          {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+          {gelistirici}
+        </div>
+      )
+    }
+
     return (
       <div className="auth">
         <div className="auth-brand">SKT Takip</div>
@@ -240,7 +321,13 @@ export default function App() {
         </div>
         <h2 className="auth-title">{girisMi ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}</h2>
         <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input type="password" placeholder="Şifre (en az 6 karakter)" value={sifre} onChange={e=>setSifre(e.target.value)} />
+        <input type="password" placeholder="Şifre (en az 6 karakter)" value={sifre} onChange={e=>setSifre(e.target.value)}
+          onKeyDown={e=>{ if (e.key === 'Enter') (girisMi ? girisYap : kayitOl)() }} />
+        {girisMi && (
+          <p className="auth-forgot">
+            <button className="link-btn" onClick={()=>{ setAuthModu('sifirla'); setMesaj('') }}>Şifremi unuttum</button>
+          </p>
+        )}
         <button className="btn" onClick={girisMi ? girisYap : kayitOl} style={{marginBottom:0}}>
           {girisMi ? 'Giriş yap' : 'Kayıt ol'}
         </button>
@@ -252,22 +339,7 @@ export default function App() {
         </p>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
 
-        {/* Geliştirici Bilgisi (Ekrana Sabitlendi) */}
-        <div style={{ position: 'fixed', bottom: '24px', left: 0, width: '100%', textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-          <p>
-            Developed by{" "}
-            <a 
-              href="https://ademucar.com.tr/" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              style={{ color: '#cbd5e1', fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
-              onMouseOver={(e) => e.target.style.color = '#38bdf8'}
-              onMouseOut={(e) => e.target.style.color = '#cbd5e1'}
-            >
-              Adem Uçar
-            </a>
-          </p>
-        </div>
+        {gelistirici}
       </div>
     )
   }
@@ -359,7 +431,21 @@ export default function App() {
       <label className="field">Son kullanma tarihi</label>
       <input type="date" value={sktTarihi} onChange={e=>setSktTarihi(e.target.value)} />
       <label className="field">Fotoğraf</label>
-      <input id="fotoInput" type="file" accept="image/*" capture="environment" onChange={e=>setFoto(e.target.files[0] || null)} />
+      {/* Kamera ve galeri ayrı girdiler: capture tek input'a konunca mobilde galeri seçilemiyor */}
+      <input id="fotoKamera" className="gizli-dosya" type="file" accept="image/*" capture="environment"
+        onChange={e=>fotoSec(e.target.files[0] || null)} />
+      <input id="fotoGaleri" className="gizli-dosya" type="file" accept="image/*"
+        onChange={e=>fotoSec(e.target.files[0] || null)} />
+      <div className="foto-secim">
+        <label className="foto-btn" htmlFor="fotoKamera">📷 Kamera</label>
+        <label className="foto-btn" htmlFor="fotoGaleri">🖼️ Galeri</label>
+      </div>
+      {fotoOnizleme && (
+        <div className="foto-onizleme">
+          <img src={fotoOnizleme} alt="Seçilen fotoğraf" />
+          <button type="button" className="foto-kaldir" onClick={fotoTemizle}>Fotoğrafı kaldır</button>
+        </div>
+      )}
       <button className="btn" onClick={urunEkle} disabled={kaydediliyor} style={{marginBottom:0}}>
         {kaydediliyor ? 'Kaydediliyor...' : '+ Ürünü Kaydet'}
       </button>
@@ -393,6 +479,13 @@ export default function App() {
           <div className="date-pill">📅 {bugunStr}</div>
         </div>
 
+        {sayfaMesaj && (
+          <div className={'sayfa-mesaj' + (sayfaMesaj.startsWith('✅') ? ' ok' : '')}>
+            <span>{sayfaMesaj}</span>
+            <button onClick={()=>setSayfaMesaj('')}>×</button>
+          </div>
+        )}
+
         {(sayfa === 'ana' || sayfa === 'urunler') && (
           <>
             {sayfa === 'ana' && (
@@ -400,7 +493,7 @@ export default function App() {
                 <div className="stat acil"><div className="stat-top"><span className="stat-lbl">ACİL</span><span className="stat-ic">⏰</span></div><div className="stat-num">{say.acil}</div><div className="stat-unit">Ürün</div></div>
                 <div className="stat yaklasan"><div className="stat-top"><span className="stat-lbl">YAKLAŞAN</span><span className="stat-ic">📅</span></div><div className="stat-num">{say.yaklasan}</div><div className="stat-unit">Ürün</div></div>
                 <div className="stat rahat"><div className="stat-top"><span className="stat-lbl">RAHAT</span><span className="stat-ic">✅</span></div><div className="stat-num">{say.rahat}</div><div className="stat-unit">Ürün</div></div>
-                <div className="stat toplam"><div className="stat-top"><span className="stat-lbl">TOPLAM ÜRÜN</span><span className="stat-ic">📦</span></div><div className="stat-num">{urunListesi.length}</div><div className="stat-unit">Ürün</div></div>
+                <div className="stat toplam"><div className="stat-top"><span className="stat-lbl">AKTİF ÜRÜN</span><span className="stat-ic">📦</span></div><div className="stat-num">{aktifUrunler.length}</div><div className="stat-unit">Ürün</div></div>
               </div>
             )}
 
@@ -424,7 +517,7 @@ export default function App() {
                 <p style={{color:'var(--muted)', fontSize:14, marginBottom:12}}>Bir markaya dokun; ürünleri en yakın SKT üstte olacak şekilde sıralı görürsün.</p>
                 {kategoriListesi.length === 0 && <p style={{color:'var(--muted)'}}>Henüz kategori yok.</p>}
                 {kategoriListesi.map(k => {
-                  const sayi = urunListesi.filter(u => u.kategori_id === k.id).length
+                  const sayi = aktifUrunler.filter(u => u.kategori_id === k.id).length
                   return (
                     <div key={k.id} className="kat-row2">
                       <button className="kat-tik" onClick={()=>setSecilenKategori(k.id)}>
@@ -449,20 +542,7 @@ export default function App() {
                   <button className="btn ghost" style={{width:'auto', padding:'8px 16px', marginBottom:16}} onClick={()=>setSecilenKategori(null)}>← Kategoriler</button>
                   <h2 className="form-title">{kat ? kat.ad : 'Kategori'} ({katUrunler.length})</h2>
                   {katUrunler.length === 0 && <div className="empty"><span className="emoji">📦</span>Bu markada ürün yok.</div>}
-                  {katUrunler.map(u => {
-                    const d = durumHesapla(u.skt_tarihi)
-                    return (
-                      <div key={u.id} className={'product ' + d.key}>
-                        <img className="thumb" src={u.foto_url} alt={u.ad} />
-                        <div className="info">
-                          <div className="name">{u.ad}</div>
-                          <div className="meta">SKT: {tarihTR(u.skt_tarihi)} · {gunMetni(d.gun)}</div>
-                          <div className="by">Ekleyen: {personelAdlari[u.ekleyen_id] || '—'}</div>
-                          {u.toplandi && <div className="picked">✓ Toplayan: {personelAdlari[u.toplayan_id] || '—'}</div>}
-                        </div>
-                      </div>
-                    )
-                  })}
+                  {katUrunler.map(urunKarti)}
                 </>
               )
             })()}
@@ -484,7 +564,7 @@ export default function App() {
               {personelListesi.map(p => <option key={p.id} value={p.id}>{p.ad}</option>)}
             </select>
             <button className="btn" onClick={toplaOnayla} disabled={!toplaPersonelId} style={{marginBottom:0}}>Topla</button>
-            {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+            {modalMesaj && <p className={'msg' + (modalMesaj.startsWith('✅') ? ' ok' : '')}>{modalMesaj}</p>}
           </div>
         </div>
       )}
@@ -525,7 +605,7 @@ export default function App() {
               <input placeholder="Personel adı" value={yeniPersonel} onChange={e=>setYeniPersonel(e.target.value)} style={{marginTop:12}} />
               <button className="btn ghost" onClick={personelEkle} disabled={!yeniPersonel.trim()} style={{marginBottom:0}}>Personel ekle</button>
             </div>
-            {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+            {ayarMesaj && <p className={'msg' + (ayarMesaj.startsWith('✅') ? ' ok' : '')}>{ayarMesaj}</p>}
           </div>
         </div>
       )}
