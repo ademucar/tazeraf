@@ -356,7 +356,7 @@ export default function App() {
   if (dogrulandi) {
     return (
       <div className="auth">
-        <div className="auth-brand">SKT Takip</div>
+        <div className="auth-brand">Tazeraf</div>
         <div className="onay">
           <div className="onay-ikon">✓</div>
           <h2 className="onay-baslik">E-posta adresin doğrulandı</h2>
@@ -392,7 +392,7 @@ export default function App() {
   if (sifreYenileme) {
     return (
       <div className="auth">
-        <div className="auth-brand">SKT Takip</div>
+        <div className="auth-brand">Tazeraf</div>
         <h2 className="auth-title">Yeni şifreni belirle</h2>
         <label className="field">Yeni şifre</label>
         <input type="password" placeholder="Yeni şifre" value={yeniSifre} onChange={e=>setYeniSifre(e.target.value)} />
@@ -411,7 +411,7 @@ export default function App() {
     if (sifirlaMi) {
       return (
         <div className="auth">
-          <div className="auth-brand">SKT Takip</div>
+          <div className="auth-brand">Tazeraf</div>
           <h2 className="auth-title">Şifreni sıfırla</h2>
           <p className="auth-hint">Hesabının e-posta adresini gir; sana sıfırlama bağlantısı gönderelim.</p>
           <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
@@ -427,7 +427,7 @@ export default function App() {
 
     return (
       <div className="auth">
-        <div className="auth-brand">SKT Takip</div>
+        <div className="auth-brand">Tazeraf</div>
         <div className="auth-tabs">
           <button className={'auth-tab' + (girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('giris'); setMesaj('') }}>Giriş Yap</button>
           <button className={'auth-tab' + (!girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('kayit'); setMesaj('') }}>Kayıt Ol</button>
@@ -587,7 +587,7 @@ export default function App() {
           <div className="brand-logo">📆</div>
           <div>
             <div className="brand-name">{isletme.ad}</div>
-            <div className="brand-sub">SKT Takip Sistemi</div>
+            <div className="brand-sub">Tazeraf</div>
           </div>
         </div>
         <nav className="nav">
