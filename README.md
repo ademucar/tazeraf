@@ -1,6 +1,5 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:38bdf8,50:3b82f6,100:0d1025&height=200&section=header&text=SKT%20Takip&fontSize=60&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Marketler%20için%20Son%20Kullanma%20Tarihi%20Takip%20Sistemi&descAlignY=58&descSize=18" width="100%"/>
 
 
 
@@ -13,7 +12,7 @@
 
 ## 📌 Proje Hakkında
 
-**SKT Takip**, marketlerin ve işletmelerin ürünlerinin **son kullanma tarihlerini** deftere yazmak yerine dijital olarak takip etmesini sağlayan bir web uygulamasıdır.
+**Parota**, marketlerin ve işletmelerin ürünlerinin **son kullanma tarihlerini** deftere yazmak yerine dijital olarak takip etmesini sağlayan bir web uygulamasıdır.
 
 Her ürün, fotoğrafı ve son kullanma tarihiyle kaydedilir; kalan güne göre otomatik olarak **Acil / Yaklaşan / Rahat** diye renklenir. Tarihi yaklaşan ürünler ana ekrana düşer, personel ürünü toplayınca kim topladığı kaydedilir ve **aynı anda bütün cihazlarda güncellenir**.
 
