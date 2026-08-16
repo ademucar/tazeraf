@@ -23,6 +23,17 @@ function tarihTR(s) {
   return `${d}.${m}.${y}`
 }
 
+// Supabase'deki "Lowercase, uppercase letters and digits" kuralıyla birebir aynı
+// olmalı; aksi halde form kabul eder, sunucu reddeder. Türkçe'ye özgü harfler
+// (Ğ, Ş, İ...) Supabase'in A-Z listesinde yok — bu yüzden burada da sadece A-Z.
+const SIFRE_KURALLARI = [
+  { ad: 'En az 8 karakter',  sina: s => s.length >= 8 },
+  { ad: 'Bir büyük harf (A-Z)', sina: s => /[A-Z]/.test(s) },
+  { ad: 'Bir küçük harf (a-z)', sina: s => /[a-z]/.test(s) },
+  { ad: 'Bir rakam (0-9)',   sina: s => /[0-9]/.test(s) },
+]
+const sifreGecerli = s => SIFRE_KURALLARI.every(k => k.sina(s))
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [isletme, setIsletme] = useState(null)
@@ -161,7 +172,7 @@ export default function App() {
   async function kayitOl() {
     setMesaj('')
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
-    if (sifre.length < 6) { setMesaj('❌ Şifre en az 6 karakter olmalı.'); return }
+    if (!sifreGecerli(sifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { data, error } = await supabase.auth.signUp({ email, password: sifre })
     if (error) { setMesaj('❌ ' + error.message); return }
     // Supabase'de e-posta doğrulama açıksa oturum dönmez; kullanıcıyı doğru yönlendir
@@ -181,7 +192,7 @@ export default function App() {
   }
   async function yeniSifreKaydet() {
     setMesaj('')
-    if (yeniSifre.length < 6) { setMesaj('❌ Şifre en az 6 karakter olmalı.'); return }
+    if (!sifreGecerli(yeniSifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { error } = await supabase.auth.updateUser({ password: yeniSifre })
     if (error) { setMesaj('❌ ' + error.message); return }
     setYeniSifre(''); setSifreYenileme(false)
@@ -302,6 +313,20 @@ export default function App() {
 
   if (yukleniyor) return <div style={{padding:24, color:'var(--muted)', fontFamily:'Inter,sans-serif'}}>Yükleniyor...</div>
 
+  // Kurallar yazılırken canlı olarak işaretlenir — kullanıcı denemeden görür
+  const sifreKurallari = (deger) => (
+    <ul className="sifre-kurallar">
+      {SIFRE_KURALLARI.map(k => {
+        const tamam = k.sina(deger)
+        return (
+          <li key={k.ad} className={tamam ? 'tamam' : ''}>
+            <span aria-hidden="true">{tamam ? '✓' : '○'}</span> {k.ad}
+          </li>
+        )
+      })}
+    </ul>
+  )
+
   const gelistirici = (
     <div className="dev-credit">
       Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
@@ -314,8 +339,9 @@ export default function App() {
         <div className="auth-brand">SKT Takip</div>
         <h2 className="auth-title">Yeni şifreni belirle</h2>
         <label className="field">Yeni şifre</label>
-        <input type="password" placeholder="En az 6 karakter" value={yeniSifre} onChange={e=>setYeniSifre(e.target.value)} />
-        <button className="btn" onClick={yeniSifreKaydet} disabled={yeniSifre.length < 6} style={{marginBottom:0}}>Şifreyi kaydet</button>
+        <input type="password" placeholder="Yeni şifre" value={yeniSifre} onChange={e=>setYeniSifre(e.target.value)} />
+        {sifreKurallari(yeniSifre)}
+        <button className="btn" onClick={yeniSifreKaydet} disabled={!sifreGecerli(yeniSifre)} style={{marginBottom:0}}>Şifreyi kaydet</button>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
         {gelistirici}
       </div>
@@ -352,14 +378,19 @@ export default function App() {
         </div>
         <h2 className="auth-title">{girisMi ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}</h2>
         <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input type="password" placeholder="Şifre (en az 6 karakter)" value={sifre} onChange={e=>setSifre(e.target.value)}
+        <input type="password" placeholder="Şifre" value={sifre} onChange={e=>setSifre(e.target.value)}
           onKeyDown={e=>{ if (e.key === 'Enter') (girisMi ? girisYap : kayitOl)() }} />
+        {/* Kurallar sadece kayıt olurken gösterilir; girişte gereksiz gürültü */}
+        {!girisMi && sifreKurallari(sifre)}
         {girisMi && (
           <p className="auth-forgot">
             <button className="link-btn" onClick={()=>{ setAuthModu('sifirla'); setMesaj('') }}>Şifremi unuttum</button>
           </p>
         )}
-        <button className="btn" onClick={girisMi ? girisYap : kayitOl} style={{marginBottom:0}}>
+        {/* Girişte asla kilitleme: eski şifreler yeni kurallara uymuyor olabilir,
+            kullanıcı kendi hesabına giremez hale gelir. Sadece kayıtta kilitli. */}
+        <button className="btn" onClick={girisMi ? girisYap : kayitOl}
+          disabled={!girisMi && !sifreGecerli(sifre)} style={{marginBottom:0}}>
           {girisMi ? 'Giriş yap' : 'Kayıt ol'}
         </button>
         <p className="auth-switch">

@@ -209,6 +209,12 @@ input[type=file]::file-selector-button { background:var(--panel); color:var(--su
 .link-btn { border:none; background:none; color:var(--accent-2); font-weight:700; cursor:pointer; font-size:var(--fs-sm); padding:10px 4px; margin:-10px 0; }
 .link-btn:hover { text-decoration:underline; }
 .auth-hint { color:var(--muted); font-size:var(--fs-sm); text-align:center; margin-bottom:var(--sp-3); line-height:1.5; }
+
+/* ---------- ŞİFRE KURAL LİSTESİ ---------- */
+.sifre-kurallar { list-style:none; margin:-6px 0 var(--sp-3); display:grid; gap:4px; }
+.sifre-kurallar li { display:flex; align-items:center; gap:8px; font-size:var(--fs-sm); color:var(--muted); transition:color var(--gecis); }
+.sifre-kurallar li span { width:1em; text-align:center; flex-shrink:0; }
+.sifre-kurallar li.tamam { color:var(--rahat); }
 .auth-forgot { text-align:right; margin:-6px 0 var(--sp-3); }
 .dev-credit { text-align:center; font-size:var(--fs-xs); color:#64748b; margin:var(--sp-5) 0 var(--sp-4); }
 .dev-credit a { color:var(--sub); font-weight:500; text-decoration:none; transition:color var(--gecis); }
