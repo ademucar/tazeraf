@@ -41,6 +41,7 @@ export default function App() {
   const [yeniKategori, setYeniKategori] = useState('')
 
   const [urunListesi, setUrunListesi] = useState([])
+  const [fotoUrlleri, setFotoUrlleri] = useState({})
   const [urunAdi, setUrunAdi] = useState('')
   const [sktTarihi, setSktTarihi] = useState('')
   const [urunKategoriId, setUrunKategoriId] = useState('')
@@ -95,32 +96,64 @@ export default function App() {
     return () => { supabase.removeChannel(kanal) }
   }, [isletme])
 
+  // İmzalı bağlantılar 1 saat geçerli; ekran gün boyu açık kalabildiği için
+  // süresi dolmadan (45 dk) yenilenir, yoksa fotoğraflar kırık görünür.
+  useEffect(() => {
+    if (!isletme) return
+    const zamanlayici = setInterval(() => { fotoUrlleriniTazele(urunListesi) }, 45 * 60 * 1000)
+    return () => clearInterval(zamanlayici)
+  }, [isletme, urunListesi])
+
   function aktifPersonelDegistir(id) { setAktifPersonelId(id); localStorage.setItem('aktifPersonelId', id) }
 
+  // Bucket private olduğu için fotoğraflar doğrudan URL ile açılamaz; her yükleme
+  // sonrası süreli (1 saat) imzalı bağlantı üretilir. Eski kayıtlarda foto_url tam
+  // bir public adres, yenilerde sadece depolama yolu — ikisini de destekliyoruz.
+  function fotoYolu(u) {
+    const s = u && u.foto_url
+    if (!s) return null
+    if (s.includes('/urun-fotolari/')) return s.split('/urun-fotolari/')[1].split('?')[0]
+    return s.replace(/^\/+/, '')
+  }
+
+  async function fotoUrlleriniTazele(urunler) {
+    const yollar = [...new Set(urunler.map(fotoYolu).filter(Boolean))]
+    if (yollar.length === 0) { setFotoUrlleri({}); return }
+    const { data, error } = await supabase.storage.from('urun-fotolari').createSignedUrls(yollar, 3600)
+    if (error) return
+    const harita = {}
+    for (const s of data || []) { if (s.signedUrl) harita[s.path] = s.signedUrl }
+    setFotoUrlleri(harita)
+  }
+
+  // Not: Asıl güvenlik sınırı veritabanındaki RLS politikalarıdır — istemcideki
+  // bu filtreler onun yerine geçmez. Yine de ikinci bir kilit olarak duruyorlar:
+  // bir politika yanlışlıkla gevşetilirse arayüz başka işletmenin verisini
+  // yanlışlıkla ekrana getirmesin diye.
   async function personelYukle() {
-    const { data } = await supabase.from('personel').select('*').order('ad')
+    const { data } = await supabase.from('personel').select('*').eq('isletme_id', session.user.id).order('ad')
     setPersonelListesi(data || [])
   }
   async function kategoriYukle() {
-    const { data } = await supabase.from('kategori').select('*').order('ad')
+    const { data } = await supabase.from('kategori').select('*').eq('isletme_id', session.user.id).order('ad')
     setKategoriListesi(data || [])
   }
   async function urunYukle() {
-    const { data } = await supabase.from('urun').select('*').order('skt_tarihi')
+    const { data } = await supabase.from('urun').select('*').eq('isletme_id', session.user.id).order('skt_tarihi')
     setUrunListesi(data || [])
+    fotoUrlleriniTazele(data || [])
   }
 
   // Toplanan ürünler, toplanma tarihinden 7 gün sonra otomatik silinir (foto dahil)
   async function eskiToplananlariTemizle() {
     const sinir = new Date(Date.now() - 7 * 86400000).toISOString()
-    const { data } = await supabase.from('urun').select('*').eq('toplandi', true).lt('toplanma_tarihi', sinir)
+    const { data } = await supabase.from('urun').select('*')
+      .eq('isletme_id', session.user.id).eq('toplandi', true).lt('toplanma_tarihi', sinir)
     if (!data || data.length === 0) return
     for (const u of data) {
-      if (u.foto_url && u.foto_url.includes('/urun-fotolari/')) {
-        const yol = u.foto_url.split('/urun-fotolari/')[1]
-        if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
-      }
-      await supabase.from('urun').delete().eq('id', u.id)
+      const yol = fotoYolu(u)
+      if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
+      await supabase.from('urun').delete().eq('id', u.id).eq('isletme_id', session.user.id)
     }
     urunYukle()
   }
@@ -191,7 +224,7 @@ export default function App() {
     setYeniPersonel(''); setAyarMesaj(''); personelYukle()
   }
   async function personelSil(id) {
-    const { error } = await supabase.from('personel').delete().eq('id', id)
+    const { error } = await supabase.from('personel').delete().eq('id', id).eq('isletme_id', session.user.id)
     if (error) { setAyarMesaj('❌ ' + error.message); return }
     if (String(id) === String(aktifPersonelId)) aktifPersonelDegistir('')
     personelYukle()
@@ -205,7 +238,7 @@ export default function App() {
     setYeniKategori(''); setSayfaMesaj(''); kategoriYukle()
   }
   async function kategoriSil(id) {
-    const { error } = await supabase.from('kategori').delete().eq('id', id)
+    const { error } = await supabase.from('kategori').delete().eq('id', id).eq('isletme_id', session.user.id)
     if (error) { setSayfaMesaj('❌ ' + error.message); return }
     if (String(id) === String(urunKategoriId)) setUrunKategoriId('')
     kategoriYukle(); urunYukle()
@@ -229,10 +262,10 @@ export default function App() {
       const yol = `${session.user.id}/${Date.now()}.jpg`
       const { error: upErr } = await supabase.storage.from('urun-fotolari').upload(yol, kucuk, { contentType: 'image/jpeg' })
       if (upErr) throw upErr
-      const { data: urlData } = supabase.storage.from('urun-fotolari').getPublicUrl(yol)
+      // Public adres yerine sadece depolama yolu saklanır — bucket private
       const { error: insErr } = await supabase.from('urun').insert({
         isletme_id: session.user.id, ad: urunAdi.trim(), skt_tarihi: sktTarihi,
-        foto_url: urlData.publicUrl, ekleyen_id: aktifPersonelId,
+        foto_url: yol, ekleyen_id: aktifPersonelId,
         kategori_id: urunKategoriId || null
       })
       if (insErr) throw insErr
@@ -247,24 +280,22 @@ export default function App() {
     if (!toplaPersonelId || !toplaModal) return
     const { error } = await supabase.from('urun').update({
       toplandi: true, toplayan_id: toplaPersonelId, toplanma_tarihi: new Date().toISOString()
-    }).eq('id', toplaModal.id)
+    }).eq('id', toplaModal.id).eq('isletme_id', session.user.id)
     if (error) { setModalMesaj('❌ ' + error.message); return }
     aktifPersonelDegistir(toplaPersonelId)
     setToplaModal(null)
     urunYukle()
   }
   async function toplamaGeriAl(urun) {
-    const { error } = await supabase.from('urun').update({ toplandi: false, toplayan_id: null, toplanma_tarihi: null }).eq('id', urun.id)
+    const { error } = await supabase.from('urun').update({ toplandi: false, toplayan_id: null, toplanma_tarihi: null }).eq('id', urun.id).eq('isletme_id', session.user.id)
     if (error) { setSayfaMesaj('❌ ' + error.message); return }
     setSayfaMesaj(''); urunYukle()
   }
   async function urunSil(urun) {
     if (!window.confirm(`"${urun.ad}" silinsin mi?`)) return
-    if (urun.foto_url && urun.foto_url.includes('/urun-fotolari/')) {
-      const yol = urun.foto_url.split('/urun-fotolari/')[1]
-      if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
-    }
-    const { error } = await supabase.from('urun').delete().eq('id', urun.id)
+    const yol = fotoYolu(urun)
+    if (yol) await supabase.storage.from('urun-fotolari').remove([yol])
+    const { error } = await supabase.from('urun').delete().eq('id', urun.id).eq('isletme_id', session.user.id)
     if (error) { setSayfaMesaj('❌ ' + error.message); return }
     setSayfaMesaj(''); urunYukle()
   }
@@ -379,9 +410,12 @@ export default function App() {
 
   const urunKarti = (u) => {
     const d = durumHesapla(u.skt_tarihi)
+    const src = fotoUrlleri[fotoYolu(u)]
     return (
       <div key={u.id} className={'product ' + d.key}>
-        <img className="thumb" src={u.foto_url} alt={u.ad} />
+        {src
+          ? <img className="thumb" src={src} alt={u.ad} loading="lazy" />
+          : <div className="thumb thumb-bos" aria-hidden="true">📷</div>}
         <div className="info">
           <div className="name">{u.ad}</div>
           <div className="meta">SKT: {tarihTR(u.skt_tarihi)} · {gunMetni(d.gun)}</div>

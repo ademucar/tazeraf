@@ -110,6 +110,8 @@ button { touch-action:manipulation; transition:background var(--gecis), color va
 .product.rahat { border-left-color:var(--rahat); }
 .product.gecmis { border-left-color:var(--gecmis); opacity:.85; }
 .product .thumb { width:4rem; height:4rem; object-fit:cover; border-radius:12px; background:var(--panel-3); flex-shrink:0; }
+/* İmzalı bağlantı henüz üretilmediyse gösterilen yer tutucu */
+.product .thumb-bos { display:grid; place-items:center; font-size:1.25rem; opacity:.5; }
 .product .info { flex:1; min-width:0; }
 /* Uzun/boşluksuz ürün adları kartı taşırmasın */
 .product .name { font-weight:700; font-size:var(--fs-lg); color:#fff; line-height:1.3; overflow-wrap:anywhere; }
