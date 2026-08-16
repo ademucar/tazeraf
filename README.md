@@ -4,7 +4,7 @@
 
 
 
-🔗 **Canlı Site:** [takipskt.vercel.app](https://takipskt.vercel.app/)
+🔗 **Canlı Site:** [tazeraf.com.tr](https://tazeraf.com.tr/)
 
 
 </div>
