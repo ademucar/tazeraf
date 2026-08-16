@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import imageCompression from 'browser-image-compression'
-import { supabase } from './supabaseClient'
+import { supabase, acilisTipi } from './supabaseClient'
 
 function durumHesapla(sktTarihi) {
   if (!sktTarihi) return { ad:'—', key:'gecmis', gun:0 }
@@ -75,6 +75,12 @@ export default function App() {
   const [sayfaMesaj, setSayfaMesaj] = useState('')
   const [authModu, setAuthModu] = useState('giris')
   const [yeniSifre, setYeniSifre] = useState('')
+  const [dogrulamaGerek, setDogrulamaGerek] = useState(false)
+  // Doğrulama bağlantısıyla gelindi mi? İlk render'da URL'den okunur.
+  const [dogrulandi, setDogrulandi] = useState(() => {
+    const t = acilisTipi()
+    return t === 'signup' || t === 'email' || t === 'email_change'
+  })
   const [secilenKategori, setSecilenKategori] = useState(null)
 
   const [sifreYenileme, setSifreYenileme] = useState(false)
@@ -88,6 +94,15 @@ export default function App() {
     })
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // Doğrulama bağlantısı beraberinde bir oturum getiriyor. Onu kapatıp adres
+  // çubuğundaki token'ları siliyoruz: kullanıcı doğrulandığını görsün ve girişi
+  // kendisi yapsın; token'lar da tarayıcı geçmişinde kalmasın.
+  useEffect(() => {
+    if (!dogrulandi) return
+    supabase.auth.signOut()
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [dogrulandi])
 
   useEffect(() => {
     if (!session) { setIsletme(null); setYukleniyor(false); return }
@@ -199,10 +214,29 @@ export default function App() {
     setMesaj('✅ Şifren güncellendi.')
   }
   async function girisYap() {
-    setMesaj('')
+    setMesaj(''); setDogrulamaGerek(false)
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
     const { error } = await supabase.auth.signInWithPassword({ email, password: sifre })
-    if (error) setMesaj('❌ E-posta veya şifre hatalı.')
+    if (!error) return
+    // Doğrulanmamış e-posta da "geçersiz kimlik" olarak dönebiliyor; ayırt et,
+    // yoksa kullanıcı şifresini yanlış sanıp boşuna uğraşır.
+    const kod = error.code || ''
+    if (kod === 'email_not_confirmed' || /not confirmed/i.test(error.message)) {
+      setDogrulamaGerek(true)
+      setMesaj('❌ E-posta adresin henüz doğrulanmamış. Sana gönderdiğimiz bağlantıya tıklaman gerekiyor.')
+    } else if (/rate limit|too many/i.test(error.message)) {
+      setMesaj('❌ Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.')
+    } else {
+      setMesaj('❌ E-posta veya şifre hatalı.')
+    }
+  }
+
+  async function dogrulamaTekrarGonder() {
+    setMesaj('')
+    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
+    if (error) { setMesaj('❌ ' + error.message); return }
+    setDogrulamaGerek(false)
+    setMesaj('✅ Doğrulama e-postası tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.')
   }
   async function cikisYap() {
     await supabase.auth.signOut()
@@ -311,6 +345,34 @@ export default function App() {
     setSayfaMesaj(''); urunYukle()
   }
 
+  const gelistirici = (
+    <div className="dev-credit">
+      Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
+    </div>
+  )
+
+  // Doğrulama ekranı her şeyin önünde gelir: kullanıcı bağlantıya tıkladığında
+  // sessizce içeri alınmak yerine ne olduğunu görsün, sonra bilerek giriş yapsın.
+  if (dogrulandi) {
+    return (
+      <div className="auth">
+        <div className="auth-brand">SKT Takip</div>
+        <div className="onay">
+          <div className="onay-ikon">✓</div>
+          <h2 className="onay-baslik">E-posta adresin doğrulandı</h2>
+          <p className="onay-metin">
+            Hesabın kullanıma hazır. Güvenlik için seni otomatik olarak içeri almıyoruz —
+            aşağıdan e-posta ve şifrenle giriş yap.
+          </p>
+        </div>
+        <button className="btn" onClick={() => { setDogrulandi(false); setAuthModu('giris'); setMesaj('') }} style={{marginBottom:0}}>
+          Giriş ekranına git
+        </button>
+        {gelistirici}
+      </div>
+    )
+  }
+
   if (yukleniyor) return <div style={{padding:24, color:'var(--muted)', fontFamily:'Inter,sans-serif'}}>Yükleniyor...</div>
 
   // Kurallar yazılırken canlı olarak işaretlenir — kullanıcı denemeden görür
@@ -325,12 +387,6 @@ export default function App() {
         )
       })}
     </ul>
-  )
-
-  const gelistirici = (
-    <div className="dev-credit">
-      Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
-    </div>
   )
 
   if (sifreYenileme) {
@@ -400,6 +456,11 @@ export default function App() {
           </button>
         </p>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+        {dogrulamaGerek && (
+          <p className="auth-switch" style={{marginTop:8}}>
+            <button className="link-btn" onClick={dogrulamaTekrarGonder}>Doğrulama e-postasını tekrar gönder</button>
+          </p>
+        )}
 
         {gelistirici}
       </div>
