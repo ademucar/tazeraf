@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import imageCompression from 'browser-image-compression'
-import { supabase, acilisTipi, beniHatirlaOku, beniHatirlaYaz } from './supabaseClient'
+import { supabase, acilisTipi, acilisModu, ADRES_SIFRE, ADRES_DOGRULAMA, beniHatirlaOku, beniHatirlaYaz } from './supabaseClient'
 import * as Ikon from './Ikonlar'
 
 function durumHesapla(sktTarihi) {
@@ -123,12 +123,15 @@ export default function App() {
   const [beniHatirla, setBeniHatirla] = useState(beniHatirlaOku)
   // Doğrulama bağlantısıyla gelindi mi? İlk render'da URL'den okunur.
   const [dogrulandi, setDogrulandi] = useState(() => {
+    if (acilisModu() === 'dogrulama') return true
     const t = acilisTipi()
     return t === 'signup' || t === 'email' || t === 'email_change'
   })
   const [secilenKategori, setSecilenKategori] = useState(null)
 
-  const [sifreYenileme, setSifreYenileme] = useState(false)
+  // PKCE akışında PASSWORD_RECOVERY olayı gelmeyebilir; işaretimiz varsa
+  // olayı beklemeden doğrudan şifre belirleme ekranını açıyoruz.
+  const [sifreYenileme, setSifreYenileme] = useState(() => acilisModu() === 'sifre' || acilisTipi() === 'recovery')
   const [sifreDegisti, setSifreDegisti] = useState(false)
 
   useEffect(() => {
@@ -149,6 +152,13 @@ export default function App() {
     supabase.auth.signOut()
     window.history.replaceState({}, '', window.location.pathname)
   }, [dogrulandi])
+
+  // Şifre belirleme ekranındayken adresteki işareti ve kodu temizle; kullanıcı
+  // sayfayı yenilerse veya bağlantıyı paylaşırsa artık bir şey sızmasın.
+  useEffect(() => {
+    if (!sifreYenileme) return
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [sifreYenileme])
 
   useEffect(() => {
     if (!session) { setIsletme(null); setYukleniyor(false); return }
@@ -245,7 +255,9 @@ export default function App() {
     setMesaj('')
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
     if (!sifreGecerli(sifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
-    const { data, error } = await supabase.auth.signUp({ email, password: sifre })
+    const { data, error } = await supabase.auth.signUp({
+      email, password: sifre, options: { emailRedirectTo: ADRES_DOGRULAMA },
+    })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     // Doğrulama açıkken Supabase oturum döndürmez. O durumda kullanıcıyı küçük bir
     // mesajla baş başa bırakmak yerine "e-postanı kontrol et" ekranına alıyoruz.
@@ -262,7 +274,7 @@ export default function App() {
   async function sifreSifirlaGonder() {
     setMesaj('')
     if (!email.trim()) { setMesaj('❌ Şifreni sıfırlamak için e-postanı gir.'); return }
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin })
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: ADRES_SIFRE })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     setMesaj('✅ Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
   }
@@ -294,7 +306,9 @@ export default function App() {
 
   async function dogrulamaTekrarGonder() {
     setMesaj('')
-    const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
+    const { error } = await supabase.auth.resend({
+      type: 'signup', email: email.trim(), options: { emailRedirectTo: ADRES_DOGRULAMA },
+    })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     setDogrulamaGerek(false)
     setMesaj('✅ Doğrulama e-postası tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.')
@@ -525,17 +539,6 @@ export default function App() {
     )
   }
 
-  // Sol üstte tek satır "Yükleniyor..." yazmak yerine markalı, ortalanmış ekran
-  if (yukleniyor) {
-    return (
-      <div className="yukleme">
-        <div className="yukleme-logo"><Ikon.Logo size={64} /></div>
-        <div className="yukleme-ad">Tazeraf</div>
-        <div className="yukleme-cubuk" role="status" aria-label="Yükleniyor"><span /></div>
-      </div>
-    )
-  }
-
   // Kurallar yazılırken canlı olarak işaretlenir — kullanıcı denemeden görür
   const sifreKurallari = (deger) => (
     <ul className="sifre-kurallar">
@@ -562,6 +565,17 @@ export default function App() {
         </button>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
       </>
+    )
+  }
+
+  // Sol üstte tek satır "Yükleniyor..." yazmak yerine markalı, ortalanmış ekran
+  if (yukleniyor) {
+    return (
+      <div className="yukleme">
+        <div className="yukleme-logo"><Ikon.Logo size={64} /></div>
+        <div className="yukleme-ad">Tazeraf</div>
+        <div className="yukleme-cubuk" role="status" aria-label="Yükleniyor"><span /></div>
+      </div>
     )
   }
 

@@ -18,6 +18,23 @@ export function acilisTipi() {
   }
 }
 
+// Supabase iki farklı akış kullanabiliyor:
+//   - implicit: adres "#access_token=...&type=recovery" ile döner
+//   - PKCE:     adres "?code=..." ile döner, "type" HİÇ YOK
+// PKCE'de type'a bakmak işe yaramadığı için bağlantıyı üretirken adrese kendi
+// işaretimizi koyuyoruz (?mod=sifre / ?mod=dogrulama) ve burada okuyoruz.
+// Böylece Supabase hangi akışı seçerse seçsin doğru ekranı açabiliyoruz.
+export function acilisModu() {
+  try {
+    return new URL(acilisUrl).searchParams.get('mod') || ''
+  } catch {
+    return ''
+  }
+}
+
+export const ADRES_SIFRE = window.location.origin + '/?mod=sifre'
+export const ADRES_DOGRULAMA = window.location.origin + '/?mod=dogrulama'
+
 // "Beni hatırla" işareti bu anahtarda tutulur ve oturumun nerede saklanacağını
 // belirler: işaretliyse localStorage (tarayıcı kapansa da kalır), değilse
 // sessionStorage (sekme kapanınca oturum düşer). Ortak kullanılan market
