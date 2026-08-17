@@ -34,6 +34,31 @@ const SIFRE_KURALLARI = [
 ]
 const sifreGecerli = s => SIFRE_KURALLARI.every(k => k.sina(s))
 
+// Supabase hataları İngilizce geliyor. Kullanıcıya ham mesaj göstermek yerine
+// sık karşılaşılanları Türkçeye ve eyleme dönüştürülebilir bir dile çeviriyoruz.
+function hataMetni(error) {
+  if (!error) return ''
+  const kod = error.code || ''
+  const m = error.message || ''
+  if (kod === 'over_email_send_rate_limit' || /rate limit|too many requests/i.test(m))
+    return 'Çok fazla deneme yapıldı. Lütfen birkaç dakika bekleyip tekrar dene.'
+  if (kod === 'user_already_exists' || /already registered|already exists/i.test(m))
+    return 'Bu e-posta ile zaten bir hesap var. "Giriş Yap" sekmesinden giriş yapabilirsin.'
+  if (kod === 'email_not_confirmed' || /not confirmed/i.test(m))
+    return 'E-posta adresin henüz doğrulanmamış. Sana gönderdiğimiz bağlantıya tıklaman gerekiyor.'
+  if (kod === 'weak_password' || /password.*(weak|should be)/i.test(m))
+    return 'Şifre yeterince güçlü değil. Yukarıdaki kuralların hepsini karşılamalı.'
+  if (kod === 'invalid_credentials' || /invalid login/i.test(m))
+    return 'E-posta veya şifre hatalı.'
+  if (/invalid.*email|email.*invalid/i.test(m))
+    return 'E-posta adresi geçersiz görünüyor. Yazımını kontrol et.'
+  if (kod === 'signup_disabled' || /signup.*disabled/i.test(m))
+    return 'Yeni kayıtlar şu anda kapalı.'
+  if (/fetch|network|failed to/i.test(m))
+    return 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
+  return m  // tanımadığımız hata: en azından ham mesajı göster
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [isletme, setIsletme] = useState(null)
@@ -189,7 +214,7 @@ export default function App() {
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
     if (!sifreGecerli(sifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { data, error } = await supabase.auth.signUp({ email, password: sifre })
-    if (error) { setMesaj('❌ ' + error.message); return }
+    if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     // Supabase'de e-posta doğrulama açıksa oturum dönmez; kullanıcıyı doğru yönlendir
     const dogrulamaGerekli = !data.session
     await supabase.auth.signOut()
@@ -202,14 +227,14 @@ export default function App() {
     setMesaj('')
     if (!email.trim()) { setMesaj('❌ Şifreni sıfırlamak için e-postanı gir.'); return }
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin })
-    if (error) { setMesaj('❌ ' + error.message); return }
+    if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     setMesaj('✅ Sıfırlama bağlantısı e-postana gönderildi. Gelen kutunu (ve spam klasörünü) kontrol et.')
   }
   async function yeniSifreKaydet() {
     setMesaj('')
     if (!sifreGecerli(yeniSifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { error } = await supabase.auth.updateUser({ password: yeniSifre })
-    if (error) { setMesaj('❌ ' + error.message); return }
+    if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     setYeniSifre(''); setSifreYenileme(false)
     setMesaj('✅ Şifren güncellendi.')
   }
@@ -218,23 +243,17 @@ export default function App() {
     if (!email.trim() || !sifre) { setMesaj('❌ Lütfen e-posta ve şifreyi gir.'); return }
     const { error } = await supabase.auth.signInWithPassword({ email, password: sifre })
     if (!error) return
-    // Doğrulanmamış e-posta da "geçersiz kimlik" olarak dönebiliyor; ayırt et,
+    // Doğrulanmamış e-posta "geçersiz kimlik" olarak da dönebiliyor; ayırt et,
     // yoksa kullanıcı şifresini yanlış sanıp boşuna uğraşır.
     const kod = error.code || ''
-    if (kod === 'email_not_confirmed' || /not confirmed/i.test(error.message)) {
-      setDogrulamaGerek(true)
-      setMesaj('❌ E-posta adresin henüz doğrulanmamış. Sana gönderdiğimiz bağlantıya tıklaman gerekiyor.')
-    } else if (/rate limit|too many/i.test(error.message)) {
-      setMesaj('❌ Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar dene.')
-    } else {
-      setMesaj('❌ E-posta veya şifre hatalı.')
-    }
+    if (kod === 'email_not_confirmed' || /not confirmed/i.test(error.message)) setDogrulamaGerek(true)
+    setMesaj('❌ ' + hataMetni(error))
   }
 
   async function dogrulamaTekrarGonder() {
     setMesaj('')
     const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() })
-    if (error) { setMesaj('❌ ' + error.message); return }
+    if (error) { setMesaj('❌ ' + hataMetni(error)); return }
     setDogrulamaGerek(false)
     setMesaj('✅ Doğrulama e-postası tekrar gönderildi. Gelen kutunu ve spam klasörünü kontrol et.')
   }
