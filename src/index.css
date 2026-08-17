@@ -83,17 +83,16 @@ button { touch-action:manipulation; transition:background var(--gecis), color va
 .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); gap:var(--sp-3); margin-bottom:var(--sp-4); }
 .stat { position:relative; overflow:hidden; background:var(--panel); border:1px solid var(--border); border-radius:var(--r-lg); padding:var(--sp-3); min-width:0; transition:border-color var(--gecis), transform var(--gecis); }
 .stat:hover { border-color:var(--border-accent); transform:translateY(-2px); }
-/* Kartın altındaki dekoratif dalga; rengi .stat.<durum> kuralından gelir */
-.stat-dalga { position:absolute; left:0; right:0; bottom:0; width:100%; height:1.5rem; opacity:.45; }
+
 .stat-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .stat-lbl { font-size:var(--fs-xs); font-weight:800; letter-spacing:.5px; min-width:0; overflow-wrap:anywhere; }
 .stat-ic { width:2.375rem; height:2.375rem; flex-shrink:0; border-radius:50%; display:grid; place-items:center; font-size:1.125rem; border:2px solid; background:rgba(255,255,255,.03); }
 .stat-num { font-size:clamp(1.75rem, 1.4rem + 1.6vw, 2.5rem); font-weight:800; margin-top:var(--sp-2); line-height:1; color:#fff; }
 .stat-unit { font-size:var(--fs-sm); color:var(--muted); margin-top:4px; }
-.stat.acil .stat-lbl, .stat.acil .stat-ic, .stat.acil .stat-dalga { color:var(--acil); border-color:var(--acil); }
-.stat.yaklasan .stat-lbl, .stat.yaklasan .stat-ic, .stat.yaklasan .stat-dalga { color:var(--yaklasan); border-color:var(--yaklasan); }
-.stat.rahat .stat-lbl, .stat.rahat .stat-ic, .stat.rahat .stat-dalga { color:var(--rahat); border-color:var(--rahat); }
-.stat.toplam .stat-lbl, .stat.toplam .stat-ic, .stat.toplam .stat-dalga { color:var(--accent-2); border-color:var(--accent-2); }
+.stat.acil .stat-lbl, .stat.acil .stat-ic { color:var(--acil); border-color:var(--acil); }
+.stat.yaklasan .stat-lbl, .stat.yaklasan .stat-ic { color:var(--yaklasan); border-color:var(--yaklasan); }
+.stat.rahat .stat-lbl, .stat.rahat .stat-ic { color:var(--rahat); border-color:var(--rahat); }
+.stat.toplam .stat-lbl, .stat.toplam .stat-ic { color:var(--accent-2); border-color:var(--accent-2); }
 
 /* ---------- TOOLBAR ---------- */
 .toolbar { display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); }
@@ -366,4 +365,52 @@ input[type=file]::file-selector-button { background:var(--panel); color:var(--su
    Yukarıdaki mobil kırılma noktasıyla birebir aynı sınır (63.9375em / 64em). */
 @media (min-width:64em) {
   .add-btn { display:none; }
+}
+
+/* ---------- SEKME GEÇİŞ ANİMASYONU ----------
+   İçerik sarmalayıcısına key verildiği için sekme değişiminde yeniden monte
+   olur ve animasyon her seferinde yeniden çalışır. */
+@keyframes gecis-gir {
+  from { opacity:0; transform:translateY(6px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+/* fill-mode YOK: öğenin normal hali zaten görünür. Animasyon çalışmazsa
+   (arka plan sekmesi, azaltılmış hareket, eski tarayıcı) içerik görünür kalır.
+   "both" kullanılsaydı animasyon takıldığında ekran boş kalırdı. */
+.gecis { opacity:1; animation:gecis-gir .28s cubic-bezier(.22,.61,.36,1); }
+
+/* Sekme düğmelerinin kendisi de sert değil yumuşak değişsin */
+.tab, .auth-tab {
+  transition:background-color var(--gecis), color var(--gecis), box-shadow var(--gecis), transform var(--gecis);
+}
+.tab:active, .auth-tab:active { transform:scale(.97); }
+
+/* ---------- YÜKLEME EKRANI ---------- */
+.yukleme {
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:var(--sp-3); padding:var(--sp-4);
+}
+.yukleme-logo { animation:yukleme-nefes 1.8s ease-in-out infinite; }
+@keyframes yukleme-nefes {
+  0%,100% { transform:scale(1);    opacity:1;   }
+  50%     { transform:scale(.94);  opacity:.75; }
+}
+.yukleme-ad {
+  font-size:var(--fs-lg); font-weight:800; letter-spacing:.5px;
+  background:linear-gradient(135deg,var(--accent-2),var(--accent));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.yukleme-cubuk {
+  width:9rem; height:3px; border-radius:99px; overflow:hidden;
+  background:rgba(255,255,255,.08);
+}
+.yukleme-cubuk span {
+  display:block; width:40%; height:100%; border-radius:99px;
+  background:linear-gradient(90deg,var(--accent-2),var(--accent));
+  animation:yukleme-kay 1.1s ease-in-out infinite;
+}
+@keyframes yukleme-kay {
+  0%   { transform:translateX(-100%); }
+  100% { transform:translateX(250%);  }
 }

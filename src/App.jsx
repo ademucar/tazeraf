@@ -57,6 +57,12 @@ function hataMetni(error) {
     return 'Yeni kayıtlar şu anda kapalı.'
   if (/fetch|network|failed to/i.test(m))
     return 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
+  // Süresi dolmuş / daha önce kullanılmış sıfırlama-doğrulama bağlantıları.
+  // Ham hali "Auth session missing!" gibi teknik bir metin; kullanıcıya ne
+  // yapması gerektiğini söylemeli.
+  if (kod === 'session_not_found' || kod === 'otp_expired' ||
+      /session missing|session_not_found|token has expired|invalid token|expired/i.test(m))
+    return 'Bu bağlantının süresi dolmuş veya daha önce kullanılmış. Lütfen yeniden istek gönder.'
   // Doğrulama maili gönderilemezse Supabase kaydı iptal eder. Sebebi sunucu
   // tarafındadır (SMTP ayarı), kullanıcının yapabileceği bir şey yoktur.
   if (kod === 'unexpected_failure' || /sending.*(email|mail)|smtp/i.test(m))
@@ -123,6 +129,7 @@ export default function App() {
   const [secilenKategori, setSecilenKategori] = useState(null)
 
   const [sifreYenileme, setSifreYenileme] = useState(false)
+  const [sifreDegisti, setSifreDegisti] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -168,6 +175,15 @@ export default function App() {
     const zamanlayici = setInterval(() => { fotoUrlleriniTazele(urunListesi) }, 45 * 60 * 1000)
     return () => clearInterval(zamanlayici)
   }, [isletme, urunListesi])
+
+  // Onay ekranlarından girişe dönerken oturumun gerçekten kapandığından emin ol.
+  // signOut'u beklemeden bayrağı temizlersek, oturum hâlâ ayakta olduğu için
+  // kullanıcı giriş ekranı yerine uygulamanın içine düşüyor.
+  async function girisEkraninaDon() {
+    await supabase.auth.signOut()
+    setSifreDegisti(false); setDogrulandi(false); setKayitBekliyor('')
+    setAuthModu('giris'); setMesaj(''); setSifre(''); setSifreGorunur(false)
+  }
 
   function beniHatirlaDegistir(deger) { setBeniHatirla(deger); beniHatirlaYaz(deger) }
 
@@ -255,8 +271,14 @@ export default function App() {
     if (!sifreGecerli(yeniSifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { error } = await supabase.auth.updateUser({ password: yeniSifre })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
-    setYeniSifre(''); setSifreYenileme(false)
-    setMesaj('✅ Şifren güncellendi.')
+    // Sıfırlama bağlantısı beraberinde bir oturum getiriyor. Kullanıcıyı bu
+    // oturumla uygulamaya bırakmak yerine çıkış yaptırıp yeni şifresiyle
+    // bilerek giriş yapmasını istiyoruz — hem doğrulama hem alışkanlık için.
+    const adres = session?.user?.email || ''
+    await supabase.auth.signOut()
+    setYeniSifre(''); setSifre(''); setSifreYenileme(false); setMesaj('')
+    setEmail(adres)
+    setSifreDegisti(true)
   }
   async function girisYap() {
     setMesaj(''); setDogrulamaGerek(false)
@@ -279,8 +301,11 @@ export default function App() {
   }
   async function cikisYap() {
     await supabase.auth.signOut()
-    setEmail(''); setSifre(''); setIsletmeAdi(''); setMesaj(''); setModalMesaj(''); setAyarMesaj('')
+    setEmail(''); setSifre(''); setIsletmeAdi(''); setMesaj(''); setModalMesaj(''); setAyarMesaj(''); setSayfaMesaj('')
     setAyarlarAcik(false); setMenuAcik(false); setUrunEkleAcik(false); setSayfa('ana'); setToplaModal(null); setSecilenKategori(null)
+    // Bunlar unutulursa bir sonraki kullanıcı önceki oturumun kalıntılarını görür
+    setAuthModu('giris'); setSifreGorunur(false); setDogrulamaGerek(false); setKayitBekliyor('')
+    setArama(''); setAktifSekme('tumu'); setSifreDegisti(false); fotoTemizle()
   }
 
   async function isletmeKaydet() {
@@ -451,13 +476,31 @@ export default function App() {
           </p>
           <p className="onay-ipucu">Bağlantı birkaç dakika içinde gelmezse spam klasörünü kontrol et.</p>
         </div>
-        <button className="btn" onClick={() => { setKayitBekliyor(''); setAuthModu('giris'); setMesaj('') }}>
-          Giriş ekranına git
+        <button className="btn" onClick={girisEkraninaDon}>
+          Giriş ekranına git <Ikon.Ok />
         </button>
         <p className="auth-switch">
           <button className="link-btn" onClick={dogrulamaTekrarGonder}>Bağlantıyı tekrar gönder</button>
         </p>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+      </>
+    )
+  }
+
+  // Şifre başarıyla değiştirildi
+  if (sifreDegisti) {
+    return authKabuk(
+      <>
+        <div className="onay">
+          <div className="onay-ikon">✓</div>
+          <h2 className="onay-baslik">Şifren güncellendi</h2>
+          <p className="onay-metin">
+            Artık yeni şifrenle giriş yapabilirsin. Güvenlik için oturumun kapatıldı.
+          </p>
+        </div>
+        <button className="btn" onClick={girisEkraninaDon}>
+          Giriş ekranına git <Ikon.Ok />
+        </button>
       </>
     )
   }
@@ -475,14 +518,23 @@ export default function App() {
             aşağıdan e-posta ve şifrenle giriş yap.
           </p>
         </div>
-        <button className="btn" onClick={() => { setDogrulandi(false); setAuthModu('giris'); setMesaj('') }} style={{marginBottom:0}}>
-          Giriş ekranına git
+        <button className="btn" onClick={girisEkraninaDon}>
+          Giriş ekranına git <Ikon.Ok />
         </button>
       </>
     )
   }
 
-  if (yukleniyor) return <div style={{padding:24, color:'var(--muted)', fontFamily:'Inter,sans-serif'}}>Yükleniyor...</div>
+  // Sol üstte tek satır "Yükleniyor..." yazmak yerine markalı, ortalanmış ekran
+  if (yukleniyor) {
+    return (
+      <div className="yukleme">
+        <div className="yukleme-logo"><Ikon.Logo size={64} /></div>
+        <div className="yukleme-ad">Tazeraf</div>
+        <div className="yukleme-cubuk" role="status" aria-label="Yükleniyor"><span /></div>
+      </div>
+    )
+  }
 
   // Kurallar yazılırken canlı olarak işaretlenir — kullanıcı denemeden görür
   const sifreKurallari = (deger) => (
@@ -545,6 +597,7 @@ export default function App() {
             <Ikon.KisiArti /> Kayıt Ol
           </button>
         </div>
+        <div className="gecis" key={authModu}>
         <h2 className="auth-title">{girisMi ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}</h2>
         <p className="auth-hint">
           {girisMi ? 'Market panelini açmak için bilgilerini gir.' : 'İşletmen için ücretsiz bir hesap oluştur.'}
@@ -568,6 +621,7 @@ export default function App() {
         <button className="btn" onClick={gonder} disabled={!girisMi && !sifreGecerli(sifre)}>
           {girisMi ? 'Giriş yap' : 'Kayıt ol'} <Ikon.Ok />
         </button>
+        </div>
         <p className="auth-switch">
           {girisMi ? 'Hesabın yok mu? ' : 'Zaten hesabın var mı? '}
           <button className="link-btn" onClick={()=>{ setAuthModu(girisMi ? 'kayit' : 'giris'); setMesaj('') }}>
@@ -751,10 +805,6 @@ export default function App() {
                     </div>
                     <div className="stat-num">{sayi}</div>
                     <div className="stat-unit">Ürün</div>
-                    {/* Dekoratif dalga — veri grafiği değil, sadece kartı tamamlıyor */}
-                    <svg className="stat-dalga" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true">
-                      <path d="M0 16 Q15 6 30 13 T60 11 T90 16 T120 8" fill="none" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
                   </div>
                 ))}
               </div>
@@ -763,7 +813,7 @@ export default function App() {
             {toolbar}
 
             <div className={'content-grid' + (sayfa === 'urunler' ? ' tek' : '')}>
-              <div className="list-col">
+              <div className="list-col gecis" key={aktifSekme}>
                 {liste.length === 0 && (
                   <div className="empty">
                     <Ikon.BosKutu />
