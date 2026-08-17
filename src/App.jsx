@@ -56,7 +56,16 @@ function hataMetni(error) {
     return 'Yeni kayıtlar şu anda kapalı.'
   if (/fetch|network|failed to/i.test(m))
     return 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
-  return m  // tanımadığımız hata: en azından ham mesajı göster
+  // Doğrulama maili gönderilemezse Supabase kaydı iptal eder. Sebebi sunucu
+  // tarafındadır (SMTP ayarı), kullanıcının yapabileceği bir şey yoktur.
+  if (kod === 'unexpected_failure' || /sending.*(email|mail)|smtp/i.test(m))
+    return 'E-posta gönderilemediği için işlem tamamlanamadı. Lütfen biraz sonra tekrar dene.'
+  // Supabase bazen boş gövdeli hata döndürüyor ("{}"). Kullanıcıya asla ham
+  // nesne gösterme; anlamsız bir metin görmektense genel bir açıklama daha iyi.
+  const temiz = m.trim()
+  if (!temiz || temiz === '{}' || temiz === '[object Object]' || /^\W+$/.test(temiz))
+    return 'Beklenmeyen bir hata oluştu. Lütfen birkaç dakika sonra tekrar dene.'
+  return temiz
 }
 
 export default function App() {
