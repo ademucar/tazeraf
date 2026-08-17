@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import imageCompression from 'browser-image-compression'
-import { supabase, acilisTipi } from './supabaseClient'
+import { supabase, acilisTipi, beniHatirlaOku, beniHatirlaYaz } from './supabaseClient'
+import * as Ikon from './Ikonlar'
 
 function durumHesapla(sktTarihi) {
   if (!sktTarihi) return { ad:'—', key:'gecmis', gun:0 }
@@ -112,6 +113,8 @@ export default function App() {
   const [dogrulamaGerek, setDogrulamaGerek] = useState(false)
   // Kayıt sonrası "e-postanı kontrol et" ekranı — dolu ise o adres gösterilir
   const [kayitBekliyor, setKayitBekliyor] = useState('')
+  const [sifreGorunur, setSifreGorunur] = useState(false)
+  const [beniHatirla, setBeniHatirla] = useState(beniHatirlaOku)
   // Doğrulama bağlantısıyla gelindi mi? İlk render'da URL'den okunur.
   const [dogrulandi, setDogrulandi] = useState(() => {
     const t = acilisTipi()
@@ -165,6 +168,8 @@ export default function App() {
     const zamanlayici = setInterval(() => { fotoUrlleriniTazele(urunListesi) }, 45 * 60 * 1000)
     return () => clearInterval(zamanlayici)
   }, [isletme, urunListesi])
+
+  function beniHatirlaDegistir(deger) { setBeniHatirla(deger); beniHatirlaYaz(deger) }
 
   function aktifPersonelDegistir(id) { setAktifPersonelId(id); localStorage.setItem('aktifPersonelId', id) }
 
@@ -385,13 +390,60 @@ export default function App() {
     </div>
   )
 
+  // Auth ekranlarının ortak kabuğu: arka plan süsleri + ortadaki kart
+  const authKabuk = (icerik) => (
+    <div className="auth-sayfa">
+      <div className="auth-fon" aria-hidden="true">
+        <span className="fon-nokta n1" /><span className="fon-nokta n2" /><span className="fon-nokta n3" />
+        <span className="fon-parlama p1" /><span className="fon-parlama p2" />
+      </div>
+      <div className="auth-kart">
+        <div className="auth-logo"><Ikon.Logo size={56} /></div>
+        <div className="auth-brand">Tazeraf</div>
+        <p className="auth-slogan">Son kullanma tarihlerini takip et, hiçbir ürünü kaçırma.</p>
+        {icerik}
+      </div>
+      {gelistirici}
+    </div>
+  )
+
+  // Şifre alanı: sağdaki göz düğmesiyle içerik görünür/gizli
+  const sifreAlani = (deger, degistir, yerTutucu, enterFn) => (
+    <div className="alan">
+      <span className="alan-ikon"><Ikon.Kilit /></span>
+      <input
+        type={sifreGorunur ? 'text' : 'password'}
+        placeholder={yerTutucu}
+        value={deger}
+        onChange={e => degistir(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && enterFn) enterFn() }}
+      />
+      <button
+        type="button"
+        className="alan-dugme"
+        onClick={() => setSifreGorunur(g => !g)}
+        aria-label={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
+      >
+        {sifreGorunur ? <Ikon.GozKapali /> : <Ikon.Goz />}
+      </button>
+    </div>
+  )
+
+  const epostaAlani = (enterFn) => (
+    <div className="alan">
+      <span className="alan-ikon"><Ikon.Zarf /></span>
+      <input type="email" placeholder="E-posta adresiniz" value={email}
+        onChange={e => setEmail(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter' && enterFn) enterFn() }} />
+    </div>
+  )
+
   // Kayıt olundu, doğrulama bekleniyor
   if (kayitBekliyor) {
-    return (
-      <div className="auth">
-        <div className="auth-brand">Tazeraf</div>
+    return authKabuk(
+      <>
         <div className="onay">
-          <div className="onay-ikon bekleme">✉</div>
+          <div className="onay-ikon bekleme"><Ikon.Zarf /></div>
           <h2 className="onay-baslik">E-postana bir bağlantı gönderdik</h2>
           <p className="onay-metin">
             <strong style={{color:'var(--text)'}}>{kayitBekliyor}</strong> adresine doğrulama bağlantısı
@@ -406,17 +458,15 @@ export default function App() {
           <button className="link-btn" onClick={dogrulamaTekrarGonder}>Bağlantıyı tekrar gönder</button>
         </p>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
-        {gelistirici}
-      </div>
+      </>
     )
   }
 
   // Doğrulama ekranı her şeyin önünde gelir: kullanıcı bağlantıya tıkladığında
   // sessizce içeri alınmak yerine ne olduğunu görsün, sonra bilerek giriş yapsın.
   if (dogrulandi) {
-    return (
-      <div className="auth">
-        <div className="auth-brand">Tazeraf</div>
+    return authKabuk(
+      <>
         <div className="onay">
           <div className="onay-ikon">✓</div>
           <h2 className="onay-baslik">E-posta adresin doğrulandı</h2>
@@ -428,8 +478,7 @@ export default function App() {
         <button className="btn" onClick={() => { setDogrulandi(false); setAuthModu('giris'); setMesaj('') }} style={{marginBottom:0}}>
           Giriş ekranına git
         </button>
-        {gelistirici}
-      </div>
+      </>
     )
   }
 
@@ -450,17 +499,17 @@ export default function App() {
   )
 
   if (sifreYenileme) {
-    return (
-      <div className="auth">
-        <div className="auth-brand">Tazeraf</div>
+    return authKabuk(
+      <>
         <h2 className="auth-title">Yeni şifreni belirle</h2>
-        <label className="field">Yeni şifre</label>
-        <input type="password" placeholder="Yeni şifre" value={yeniSifre} onChange={e=>setYeniSifre(e.target.value)} />
+        <p className="auth-hint">Aşağıdaki kuralları karşılayan yeni bir şifre belirle.</p>
+        {sifreAlani(yeniSifre, setYeniSifre, 'Yeni şifre', yeniSifreKaydet)}
         {sifreKurallari(yeniSifre)}
-        <button className="btn" onClick={yeniSifreKaydet} disabled={!sifreGecerli(yeniSifre)} style={{marginBottom:0}}>Şifreyi kaydet</button>
+        <button className="btn" onClick={yeniSifreKaydet} disabled={!sifreGecerli(yeniSifre)}>
+          Şifreyi kaydet <Ikon.Ok />
+        </button>
         {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
-        {gelistirici}
-      </div>
+      </>
     )
   }
 
@@ -469,45 +518,55 @@ export default function App() {
     const sifirlaMi = authModu === 'sifirla'
 
     if (sifirlaMi) {
-      return (
-        <div className="auth">
-          <div className="auth-brand">Tazeraf</div>
+      return authKabuk(
+        <>
           <h2 className="auth-title">Şifreni sıfırla</h2>
           <p className="auth-hint">Hesabının e-posta adresini gir; sana sıfırlama bağlantısı gönderelim.</p>
-          <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
-          <button className="btn" onClick={sifreSifirlaGonder} disabled={!email.trim()} style={{marginBottom:0}}>Sıfırlama bağlantısı gönder</button>
+          {epostaAlani(sifreSifirlaGonder)}
+          <button className="btn" onClick={sifreSifirlaGonder} disabled={!email.trim()}>
+            Sıfırlama bağlantısı gönder <Ikon.Ok />
+          </button>
           <p className="auth-switch">
             <button className="link-btn" onClick={()=>{ setAuthModu('giris'); setMesaj('') }}>← Girişe dön</button>
           </p>
           {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
-          {gelistirici}
-        </div>
+        </>
       )
     }
 
-    return (
-      <div className="auth">
-        <div className="auth-brand">Tazeraf</div>
+    const gonder = girisMi ? girisYap : kayitOl
+    return authKabuk(
+      <>
         <div className="auth-tabs">
-          <button className={'auth-tab' + (girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('giris'); setMesaj('') }}>Giriş Yap</button>
-          <button className={'auth-tab' + (!girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('kayit'); setMesaj('') }}>Kayıt Ol</button>
+          <button className={'auth-tab' + (girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('giris'); setMesaj('') }}>
+            <Ikon.Kisi /> Giriş Yap
+          </button>
+          <button className={'auth-tab' + (!girisMi ? ' active' : '')} onClick={()=>{ setAuthModu('kayit'); setMesaj('') }}>
+            <Ikon.KisiArti /> Kayıt Ol
+          </button>
         </div>
         <h2 className="auth-title">{girisMi ? 'Hesabına giriş yap' : 'Yeni hesap oluştur'}</h2>
-        <input type="email" placeholder="E-posta" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input type="password" placeholder="Şifre" value={sifre} onChange={e=>setSifre(e.target.value)}
-          onKeyDown={e=>{ if (e.key === 'Enter') (girisMi ? girisYap : kayitOl)() }} />
+        <p className="auth-hint">
+          {girisMi ? 'Market panelini açmak için bilgilerini gir.' : 'İşletmen için ücretsiz bir hesap oluştur.'}
+        </p>
+        {epostaAlani(gonder)}
+        {sifreAlani(sifre, setSifre, 'Şifre', gonder)}
         {/* Kurallar sadece kayıt olurken gösterilir; girişte gereksiz gürültü */}
         {!girisMi && sifreKurallari(sifre)}
         {girisMi && (
-          <p className="auth-forgot">
-            <button className="link-btn" onClick={()=>{ setAuthModu('sifirla'); setMesaj('') }}>Şifremi unuttum</button>
-          </p>
+          <div className="auth-satir">
+            <label className="onay-kutu">
+              <input type="checkbox" checked={beniHatirla} onChange={e=>beniHatirlaDegistir(e.target.checked)} />
+              <span className="kutu-isaret" aria-hidden="true" />
+              Beni hatırla
+            </label>
+            <button className="link-btn" onClick={()=>{ setAuthModu('sifirla'); setMesaj('') }}>Şifremi unuttum?</button>
+          </div>
         )}
         {/* Girişte asla kilitleme: eski şifreler yeni kurallara uymuyor olabilir,
             kullanıcı kendi hesabına giremez hale gelir. Sadece kayıtta kilitli. */}
-        <button className="btn" onClick={girisMi ? girisYap : kayitOl}
-          disabled={!girisMi && !sifreGecerli(sifre)} style={{marginBottom:0}}>
-          {girisMi ? 'Giriş yap' : 'Kayıt ol'}
+        <button className="btn" onClick={gonder} disabled={!girisMi && !sifreGecerli(sifre)}>
+          {girisMi ? 'Giriş yap' : 'Kayıt ol'} <Ikon.Ok />
         </button>
         <p className="auth-switch">
           {girisMi ? 'Hesabın yok mu? ' : 'Zaten hesabın var mı? '}
@@ -521,9 +580,7 @@ export default function App() {
             <button className="link-btn" onClick={dogrulamaTekrarGonder}>Doğrulama e-postasını tekrar gönder</button>
           </p>
         )}
-
-        {gelistirici}
-      </div>
+      </>
     )
   }
 
@@ -594,14 +651,17 @@ export default function App() {
           <button key={k} className={'tab' + (aktifSekme===k ? ' active' : '')} onClick={()=>setAktifSekme(k)}>{e}</button>
         ))}
       </div>
-      <input className="search" placeholder="Ürün ara..." value={arama} onChange={e=>setArama(e.target.value)} />
+      <div className="ara-alan">
+        <span className="alan-ikon"><Ikon.Ara /></span>
+        <input className="search" placeholder="Ürün ara..." value={arama} onChange={e=>setArama(e.target.value)} />
+      </div>
       <button className="btn add-btn" onClick={()=>{ setMesaj(''); setUrunEkleAcik(true) }}>+ Ürün Ekle</button>
     </div>
   )
 
   const urunFormu = (
     <>
-      <h2 className="form-title">Yeni Ürün Ekle</h2>
+      <h2 className="form-title">Yeni Ürün Ekle <span className="form-suslu" aria-hidden="true"><Ikon.Logo size={34} /></span></h2>
       <label className="field">Ürün adı</label>
       <input placeholder="Ürün adı girin" value={urunAdi} onChange={e=>setUrunAdi(e.target.value)} />
       <label className="field">Personel (ekleyen)</label>
@@ -623,8 +683,8 @@ export default function App() {
       <input id="fotoGaleri" className="gizli-dosya" type="file" accept="image/*"
         onChange={e=>fotoSec(e.target.files[0] || null)} />
       <div className="foto-secim">
-        <label className="foto-btn" htmlFor="fotoKamera">📷 Kamera</label>
-        <label className="foto-btn" htmlFor="fotoGaleri">🖼️ Galeri</label>
+        <label className="foto-btn" htmlFor="fotoKamera"><Ikon.Kamera /> Kamera</label>
+        <label className="foto-btn" htmlFor="fotoGaleri"><Ikon.Resim /> Galeri</label>
       </div>
       {fotoOnizleme && (
         <div className="foto-onizleme">
@@ -644,25 +704,27 @@ export default function App() {
       {menuAcik && <div className="menu-backdrop" onClick={()=>setMenuAcik(false)} />}
       <aside className={'sidebar' + (menuAcik ? ' open' : '')}>
         <div className="brand">
-          <div className="brand-logo">📆</div>
+          <div className="brand-logo"><Ikon.Magaza /></div>
           <div>
             <div className="brand-name">{isletme.ad}</div>
             <div className="brand-sub">Tazeraf</div>
           </div>
         </div>
         <nav className="nav">
-          <button className={'nav-item' + (sayfa==='ana' ? ' active' : '')} onClick={()=>navGit('ana')}>🏠 Ana Sayfa</button>
-          <button className={'nav-item' + (sayfa==='urunler' ? ' active' : '')} onClick={()=>navGit('urunler')}>📦 Ürünler</button>
-          <button className={'nav-item' + (sayfa==='kategoriler' ? ' active' : '')} onClick={()=>navGit('kategoriler')}>🗂️ Kategoriler</button>
-          <button className="nav-item" onClick={ayarlariAc}>⚙️ Ayarlar</button>
+          <button className={'nav-item' + (sayfa==='ana' ? ' active' : '')} onClick={()=>navGit('ana')}><span className="nav-ikon"><Ikon.Ev /></span> Ana Sayfa</button>
+          <button className={'nav-item' + (sayfa==='urunler' ? ' active' : '')} onClick={()=>navGit('urunler')}><span className="nav-ikon"><Ikon.Kutu /></span> Ürünler</button>
+          <button className={'nav-item' + (sayfa==='kategoriler' ? ' active' : '')} onClick={()=>navGit('kategoriler')}><span className="nav-ikon"><Ikon.Klasor /></span> Kategoriler</button>
+          <button className="nav-item" onClick={ayarlariAc}><span className="nav-ikon"><Ikon.Ayar /></span> Ayarlar</button>
         </nav>
-        <button className="nav-item logout" onClick={cikisYap}>↩ Çıkış Yap</button>
+        <button className="nav-item logout" onClick={cikisYap}><span className="nav-ikon"><Ikon.Cikis /></span> Çıkış Yap</button>
       </aside>
 
       <main className="main">
         <div className="topbar">
-          <button className="menu-btn" onClick={()=>setMenuAcik(true)}>☰</button>
-          <div className="date-pill">📅 {bugunStr}</div>
+          <button className="menu-btn" onClick={()=>setMenuAcik(true)} aria-label="Menüyü aç">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+          <div className="date-pill"><Ikon.Takvim /> {bugunStr}</div>
         </div>
 
         {sayfaMesaj && (
@@ -676,10 +738,25 @@ export default function App() {
           <>
             {sayfa === 'ana' && (
               <div className="stats">
-                <div className="stat acil"><div className="stat-top"><span className="stat-lbl">ACİL</span><span className="stat-ic">⏰</span></div><div className="stat-num">{say.acil}</div><div className="stat-unit">Ürün</div></div>
-                <div className="stat yaklasan"><div className="stat-top"><span className="stat-lbl">YAKLAŞAN</span><span className="stat-ic">📅</span></div><div className="stat-num">{say.yaklasan}</div><div className="stat-unit">Ürün</div></div>
-                <div className="stat rahat"><div className="stat-top"><span className="stat-lbl">RAHAT</span><span className="stat-ic">✅</span></div><div className="stat-num">{say.rahat}</div><div className="stat-unit">Ürün</div></div>
-                <div className="stat toplam"><div className="stat-top"><span className="stat-lbl">AKTİF ÜRÜN</span><span className="stat-ic">📦</span></div><div className="stat-num">{aktifUrunler.length}</div><div className="stat-unit">Ürün</div></div>
+                {[
+                  { k:'acil',     ad:'ACİL',       sayi:say.acil,             Ic:Ikon.Alarm  },
+                  { k:'yaklasan', ad:'YAKLAŞAN',   sayi:say.yaklasan,         Ic:Ikon.Takvim },
+                  { k:'rahat',    ad:'RAHAT',      sayi:say.rahat,            Ic:Ikon.Kalkan },
+                  { k:'toplam',   ad:'AKTİF ÜRÜN', sayi:aktifUrunler.length,  Ic:Ikon.Paket  },
+                ].map(({k, ad, sayi, Ic}) => (
+                  <div key={k} className={'stat ' + k}>
+                    <div className="stat-top">
+                      <span className="stat-lbl">{ad}</span>
+                      <span className="stat-ic"><Ic /></span>
+                    </div>
+                    <div className="stat-num">{sayi}</div>
+                    <div className="stat-unit">Ürün</div>
+                    {/* Dekoratif dalga — veri grafiği değil, sadece kartı tamamlıyor */}
+                    <svg className="stat-dalga" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true">
+                      <path d="M0 16 Q15 6 30 13 T60 11 T90 16 T120 8" fill="none" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -687,7 +764,14 @@ export default function App() {
 
             <div className={'content-grid' + (sayfa === 'urunler' ? ' tek' : '')}>
               <div className="list-col">
-                {liste.length === 0 && <div className="empty"><span className="emoji">📦</span>Bu listede ürün yok.</div>}
+                {liste.length === 0 && (
+                  <div className="empty">
+                    <Ikon.BosKutu />
+                    <h3>Bu listede ürün yok.</h3>
+                    <p>Ürün ekleyerek son kullanma tarihlerini takip etmeye başlayın.</p>
+                    <button className="btn bos-btn" onClick={()=>{ setMesaj(''); setUrunEkleAcik(true) }}>+ Yeni Ürün Ekle</button>
+                  </div>
+                )}
                 {liste.map(urunKarti)}
               </div>
               {sayfa === 'ana' && <div className="form-col">{urunFormu}</div>}
@@ -727,7 +811,9 @@ export default function App() {
                 <>
                   <button className="btn ghost" style={{width:'auto', padding:'8px 16px', marginBottom:16}} onClick={()=>setSecilenKategori(null)}>← Kategoriler</button>
                   <h2 className="form-title">{kat ? kat.ad : 'Kategori'} ({katUrunler.length})</h2>
-                  {katUrunler.length === 0 && <div className="empty"><span className="emoji">📦</span>Bu markada ürün yok.</div>}
+                  {katUrunler.length === 0 && (
+                    <div className="empty"><Ikon.BosKutu /><h3>Bu kategoride ürün yok.</h3></div>
+                  )}
                   {katUrunler.map(urunKarti)}
                 </>
               )

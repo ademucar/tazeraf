@@ -18,4 +18,36 @@ export function acilisTipi() {
   }
 }
 
-export const supabase = createClient(url, key)
+// "Beni hatırla" işareti bu anahtarda tutulur ve oturumun nerede saklanacağını
+// belirler: işaretliyse localStorage (tarayıcı kapansa da kalır), değilse
+// sessionStorage (sekme kapanınca oturum düşer). Ortak kullanılan market
+// bilgisayarlarında ikincisi önemli.
+const HATIRLA_ANAHTARI = 'tazeraf.beniHatirla'
+
+export function beniHatirlaOku() {
+  try { return localStorage.getItem(HATIRLA_ANAHTARI) !== 'hayir' } catch { return true }
+}
+export function beniHatirlaYaz(deger) {
+  try { localStorage.setItem(HATIRLA_ANAHTARI, deger ? 'evet' : 'hayir') } catch { /* depolama kapalı olabilir */ }
+}
+
+// Tek bir depolama arayüzü; her çağrıda güncel tercihe göre hedefi seçer.
+// Böylece kullanıcı işareti değiştirdiğinde istemciyi yeniden kurmak gerekmez.
+const oturumDeposu = {
+  getItem: (k) => {
+    try { return localStorage.getItem(k) ?? sessionStorage.getItem(k) } catch { return null }
+  },
+  setItem: (k, v) => {
+    try {
+      if (beniHatirlaOku()) { localStorage.setItem(k, v); sessionStorage.removeItem(k) }
+      else { sessionStorage.setItem(k, v); localStorage.removeItem(k) }
+    } catch { /* depolama kapalı olabilir */ }
+  },
+  removeItem: (k) => {
+    try { localStorage.removeItem(k); sessionStorage.removeItem(k) } catch { /* yoksay */ }
+  },
+}
+
+export const supabase = createClient(url, key, {
+  auth: { storage: oturumDeposu, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+})
