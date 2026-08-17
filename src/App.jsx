@@ -101,6 +101,8 @@ export default function App() {
   const [authModu, setAuthModu] = useState('giris')
   const [yeniSifre, setYeniSifre] = useState('')
   const [dogrulamaGerek, setDogrulamaGerek] = useState(false)
+  // Kayıt sonrası "e-postanı kontrol et" ekranı — dolu ise o adres gösterilir
+  const [kayitBekliyor, setKayitBekliyor] = useState('')
   // Doğrulama bağlantısıyla gelindi mi? İlk render'da URL'den okunur.
   const [dogrulandi, setDogrulandi] = useState(() => {
     const t = acilisTipi()
@@ -215,13 +217,17 @@ export default function App() {
     if (!sifreGecerli(sifre)) { setMesaj('❌ Şifre aşağıdaki kuralların hepsini karşılamalı.'); return }
     const { data, error } = await supabase.auth.signUp({ email, password: sifre })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
-    // Supabase'de e-posta doğrulama açıksa oturum dönmez; kullanıcıyı doğru yönlendir
+    // Doğrulama açıkken Supabase oturum döndürmez. O durumda kullanıcıyı küçük bir
+    // mesajla baş başa bırakmak yerine "e-postanı kontrol et" ekranına alıyoruz.
     const dogrulamaGerekli = !data.session
     await supabase.auth.signOut()
-    setSifre(''); setAuthModu('giris')
-    setMesaj(dogrulamaGerekli
-      ? '✅ Kayıt alındı. E-postana gelen doğrulama bağlantısına tıkla, sonra giriş yap.'
-      : '✅ Kayıt başarılı. Şimdi bu e-posta ve şifreyle giriş yap.')
+    setSifre('')
+    if (dogrulamaGerekli) {
+      setKayitBekliyor(email.trim())
+    } else {
+      setAuthModu('giris')
+      setMesaj('✅ Kayıt başarılı. Şimdi bu e-posta ve şifreyle giriş yap.')
+    }
   }
   async function sifreSifirlaGonder() {
     setMesaj('')
@@ -369,6 +375,32 @@ export default function App() {
       Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
     </div>
   )
+
+  // Kayıt olundu, doğrulama bekleniyor
+  if (kayitBekliyor) {
+    return (
+      <div className="auth">
+        <div className="auth-brand">Tazeraf</div>
+        <div className="onay">
+          <div className="onay-ikon bekleme">✉</div>
+          <h2 className="onay-baslik">E-postana bir bağlantı gönderdik</h2>
+          <p className="onay-metin">
+            <strong style={{color:'var(--text)'}}>{kayitBekliyor}</strong> adresine doğrulama bağlantısı
+            gönderildi. Bağlantıya tıkladıktan sonra buraya dönüp giriş yapabilirsin.
+          </p>
+          <p className="onay-ipucu">Bağlantı birkaç dakika içinde gelmezse spam klasörünü kontrol et.</p>
+        </div>
+        <button className="btn" onClick={() => { setKayitBekliyor(''); setAuthModu('giris'); setMesaj('') }}>
+          Giriş ekranına git
+        </button>
+        <p className="auth-switch">
+          <button className="link-btn" onClick={dogrulamaTekrarGonder}>Bağlantıyı tekrar gönder</button>
+        </p>
+        {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+        {gelistirici}
+      </div>
+    )
+  }
 
   // Doğrulama ekranı her şeyin önünde gelir: kullanıcı bağlantıya tıkladığında
   // sessizce içeri alınmak yerine ne olduğunu görsün, sonra bilerek giriş yapsın.
