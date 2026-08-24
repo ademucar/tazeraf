@@ -70,39 +70,30 @@ export const Paket = (p) => (
   <svg {...ortak} {...p}><path d="M21 8 12 3 3 8v8l9 5 9-5Z"/><path d="m3 8 9 5 9-5"/><path d="M7.5 5.5 16.5 10.5"/></svg>
 )
 
-// Marka işareti: takvim + saat. Giriş ekranı ve kenar çubuğunda kullanılır.
+// Marka işareti: raf etiketi + filiz. "Taze" + "raf" birleşimi.
+// Gradyan yok, gölge yok — iki renkli, keskin köşeli baskı işareti.
 export const Logo = ({ size = 48, ...p }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false" {...p}>
-    <defs>
-      <linearGradient id="tzr-g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#38bdf8"/><stop offset="100%" stopColor="#3b82f6"/>
-      </linearGradient>
-    </defs>
-    <rect x="4" y="8" width="32" height="30" rx="6" fill="url(#tzr-g)"/>
-    <rect x="4" y="8" width="32" height="9" rx="6" fill="#0f172a" opacity=".25"/>
-    <path d="M13 5v7M27 5v7" stroke="#e0f2fe" strokeWidth="3" strokeLinecap="round"/>
-    <g fill="#0b1220" opacity=".35">
-      <rect x="10" y="22" width="5" height="4" rx="1.2"/>
-      <rect x="18" y="22" width="5" height="4" rx="1.2"/>
-      <rect x="10" y="29" width="5" height="4" rx="1.2"/>
-    </g>
-    <circle cx="34" cy="33" r="11" fill="#0b1220"/>
-    <circle cx="34" cy="33" r="9" fill="url(#tzr-g)"/>
-    <path d="M34 28v5.4l3.4 2" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 9h26.5L43 24 30.5 39H4z" fill="var(--yesil)" stroke="var(--murekkep)"
+      strokeWidth="2.6" strokeLinejoin="miter"/>
+    <circle cx="12.5" cy="24" r="3" fill="var(--kagit)" stroke="var(--murekkep)" strokeWidth="2"/>
+    <path d="M23 31c-.5-6 3-10 9.5-10.5C32 26.5 29 30.5 23 31z" fill="var(--kagit)"
+      stroke="var(--murekkep)" strokeWidth="2" strokeLinejoin="round"/>
+    <path d="M23 31c1.5-3 4-5.5 7-7" stroke="var(--murekkep)" strokeWidth="1.8" strokeLinecap="round"/>
   </svg>
 )
 
-// Boş liste görseli — açık kutu
+// Boş liste görseli: açık kasa, çizgi resim. Dolgu ve gradyan yok.
 export const BosKutu = (p) => (
-  <svg width="128" height="104" viewBox="0 0 128 104" fill="none" aria-hidden="true" focusable="false" {...p}>
-    <ellipse cx="64" cy="90" rx="40" ry="7" fill="#3b82f6" opacity=".12"/>
-    <path d="M28 44h72v40a4 4 0 0 1-4 4H32a4 4 0 0 1-4-4Z" fill="#1e3a8a" opacity=".55"/>
-    <path d="M28 44 20 30h34l10 14Z" fill="#3b82f6" opacity=".8"/>
-    <path d="M100 44l8-14H74L64 44Z" fill="#60a5fa" opacity=".8"/>
-    <path d="M64 44v44" stroke="#93c5fd" strokeWidth="1.5" opacity=".5"/>
-    <path d="M96 18l10-6-3 8 6 3-8 2" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-    <circle cx="24" cy="20" r="2.5" fill="#38bdf8" opacity=".8"/>
-    <circle cx="112" cy="52" r="2" fill="#a78bfa" opacity=".8"/>
-    <path d="M18 56h5M20.5 53.5v5" stroke="#38bdf8" strokeWidth="1.8" strokeLinecap="round" opacity=".7"/>
+  <svg width="132" height="96" viewBox="0 0 132 96" fill="none" aria-hidden="true" focusable="false" {...p}>
+    <path d="M30 40h72v40H30z" stroke="var(--murekkep)" strokeWidth="2.4" strokeLinejoin="miter"/>
+    <path d="M30 40 20 26h38l10 14M102 40l10-14H74L64 40" stroke="var(--murekkep)" strokeWidth="2.4"
+      strokeLinejoin="miter" strokeLinecap="square"/>
+    <path d="M66 40v40" stroke="var(--cizgi)" strokeWidth="2" strokeDasharray="5 5"/>
+    <path d="M44 58h14M74 58h14" stroke="var(--cizgi)" strokeWidth="2" strokeLinecap="round"/>
+    <path d="M110 16l7-5-2 6 5 2-6 1.5" stroke="var(--yesil)" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round"/>
+    <circle cx="18" cy="14" r="2.4" fill="var(--yesil)"/>
+    <path d="M12 62h6M15 59v6" stroke="var(--yesil)" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 )

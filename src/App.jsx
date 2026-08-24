@@ -432,10 +432,6 @@ export default function App() {
   // Auth ekranlarının ortak kabuğu: arka plan süsleri + ortadaki kart
   const authKabuk = (icerik) => (
     <div className="auth-sayfa">
-      <div className="auth-fon" aria-hidden="true">
-        <span className="fon-nokta n1" /><span className="fon-nokta n2" /><span className="fon-nokta n3" />
-        <span className="fon-parlama p1" /><span className="fon-parlama p2" />
-      </div>
       <div className="auth-kart">
         <div className="auth-logo"><Ikon.Logo size={56} /></div>
         <div className="auth-brand">Tazeraf</div>
@@ -695,7 +691,10 @@ export default function App() {
           : <div className="thumb thumb-bos" aria-hidden="true">📷</div>}
         <div className="info">
           <div className="name">{u.ad}</div>
-          <div className="meta">SKT: {tarihTR(u.skt_tarihi)} · {gunMetni(d.gun)}</div>
+          <div className="meta">
+            <span className="skt">{tarihTR(u.skt_tarihi)}</span>
+            <span className={'gun-rozet ' + d.key}>{gunMetni(d.gun)}</span>
+          </div>
           <div className="by">
             Ekleyen: {personelAdlari[u.ekleyen_id] || '—'}
             {u.kategori_id && kategoriAdlari[u.kategori_id] ? ` · ${kategoriAdlari[u.kategori_id]}` : ''}
