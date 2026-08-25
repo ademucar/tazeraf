@@ -99,7 +99,7 @@ export const BosKutu = (p) => (
 )
 
 // ---------- MARKA LOGOSU ----------
-// public/yenilogo.png 1299x1211 ve 1.2 MB idi; 44px'lik bir alan için ağırdı.
+// Orijinal logo 1299x1211 ve 1.2 MB idi; 44px'lik bir alan için ağırdı.
 // Saydam kenarları kırpılmış, kareye oturtulmuş ve küçültülmüş sürümler
 // kullanılıyor (96px = 15 KB). Retina ekranlar srcSet ile 192px'i alır.
 // width/height öznitelikleri yerleşim kaymasını (CLS) önler; ölçü CSS'ten gelir.
