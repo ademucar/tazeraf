@@ -66,6 +66,40 @@ button, input, select, textarea { font-family:inherit; }
 button { touch-action:manipulation; transition:background var(--gecis), color var(--gecis), border-color var(--gecis), transform var(--gecis), box-shadow var(--gecis); }
 @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 
+/* ---------- KAYDIRMA ÇUBUĞU ----------
+   Varsayılan gri çubuk (ok düğmeleri, yuvarlak tutamak) kağıt zeminin yanında
+   yabancı duruyordu. Mürekkep rengi, keskin köşeli, ok düğmeleri kaldırılmış:
+   sayfanın kenarına çekilmiş bir cetvel gibi.
+   DİKKAT: Chromium'da scrollbar-color VEYA scrollbar-width yazılırsa
+   ::-webkit-scrollbar kuralları tamamen yok sayılıyor (ölçtüm: 13px yerine
+   10/15px native çubuk). Bu yüzden ikisi ayrıldı — webkit tarayıcılar aşağıdaki
+   kuralları, Firefox ise en alttaki @supports bloğunu kullanır. */
+::-webkit-scrollbar { width:13px; height:13px; }
+::-webkit-scrollbar-track { background:var(--kagit-3); border-left:1px solid var(--cizgi); }
+::-webkit-scrollbar-thumb {
+  background:var(--murekkep); border-radius:0;
+  /* Kenardaki 3px, tutamağı raydan ayıran boşluk illüzyonunu veriyor */
+  border:3px solid var(--kagit-3);
+}
+::-webkit-scrollbar-thumb:hover { background:var(--yesil); }
+::-webkit-scrollbar-thumb:active { background:var(--yesil-koyu); }
+/* Uçlardaki ok düğmeleri: Windows'ta çıkan gri üçgenler konsepte aykırı */
+::-webkit-scrollbar-button { display:none; width:0; height:0; }
+::-webkit-scrollbar-corner { background:var(--kagit-3); }
+
+/* Firefox webkit sözde-elemanlarını desteklemiyor; ona standart özelliklerle
+   aynı kağıt-mürekkep görünümünü veriyoruz. Koşul Chromium'da yanlış olduğu
+   için yukarıdaki ayrıntılı kurallar orada bozulmadan kalıyor. */
+@supports not selector(::-webkit-scrollbar) {
+  html { scrollbar-width:thin; scrollbar-color:var(--murekkep) var(--kagit-3); }
+}
+
+/* Metin seçimi de kağıt-mürekkep dünyasında kalsın */
+::selection { background:var(--yesil); color:#fff; }
+
+/* Klavyeyle gezinenler için görünür, keskin odak halkası */
+:focus-visible { outline:2px solid var(--yesil); outline-offset:2px; }
+
 /* Sayı ve tarihler daktilo yazıyla — basılmış etiket hissi */
 .stat-num, .skt, .gun-rozet, .date-pill, .kat-tik small, .stat-unit { font-family:'Space Mono', ui-monospace, monospace; }
 
