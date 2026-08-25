@@ -111,11 +111,9 @@ button { touch-action:manipulation; transition:background var(--gecis), color va
   display:flex; flex-direction:column; padding:var(--sp-4) var(--sp-3); overflow-y:auto;
 }
 .brand { display:flex; align-items:center; gap:var(--sp-2); padding-bottom:var(--sp-4); margin-bottom:var(--sp-3); border-bottom:2px solid var(--murekkep); min-width:0; }
-.brand-logo {
-  width:2.75rem; height:2.75rem; flex-shrink:0; border-radius:var(--r-sm);
-  display:grid; place-items:center; font-size:1.375rem; color:var(--kagit-2);
-  background:var(--yesil); border:2px solid var(--murekkep);
-}
+/* Marka logosu saydam PNG: arkasına kutu/çerçeve konmuyor, kendi silueti kalıyor */
+.marka-logo { display:block; object-fit:contain; flex-shrink:0; }
+.brand-logo { width:2.75rem; height:2.75rem; }
 .brand-name { font-weight:800; font-size:var(--fs-md); letter-spacing:-.01em; color:var(--murekkep); overflow-wrap:anywhere; }
 .brand-sub { font-size:var(--fs-xs); color:var(--murekkep-3); text-transform:uppercase; letter-spacing:.12em; font-weight:600; }
 
@@ -237,8 +235,7 @@ button { touch-action:manipulation; transition:background var(--gecis), color va
 .btn-del-urun:hover { border-color:var(--acil); background:var(--acil-zemin); }
 
 /* ---------- FORM ---------- */
-.form-title { position:relative; font-size:var(--fs-lg); font-weight:800; color:var(--murekkep); margin-bottom:var(--sp-3); padding-bottom:var(--sp-2); border-bottom:2px solid var(--murekkep); letter-spacing:-.02em; overflow-wrap:anywhere; padding-right:2.5rem; }
-.form-suslu { position:absolute; right:0; top:0; pointer-events:none; }
+.form-title { position:relative; font-size:var(--fs-lg); font-weight:800; color:var(--murekkep); margin-bottom:var(--sp-3); padding-bottom:var(--sp-2); border-bottom:2px solid var(--murekkep); letter-spacing:-.02em; overflow-wrap:anywhere; }
 label.field { display:block; font-size:var(--fs-xs); color:var(--murekkep-2); margin-bottom:6px; margin-top:var(--sp-2); text-transform:uppercase; letter-spacing:.1em; font-weight:700; }
 input, select {
   width:100%; padding:0.6875rem 0.75rem; min-height:2.75rem; font-size:var(--fs-girdi);
@@ -328,10 +325,11 @@ input[type=file] { padding:8px; }
   background:var(--kagit-2); border:2px solid var(--murekkep); border-radius:var(--r-md);
   box-shadow:6px 6px 0 var(--murekkep);
 }
-.auth-logo { display:flex; justify-content:center; margin-bottom:var(--sp-3); }
+.auth-kimlik { display:flex; align-items:center; justify-content:center; gap:var(--sp-2); margin-bottom:10px; }
+.auth-logo { width:3.25rem; height:3.25rem; }
 .auth-brand {
   font-size:clamp(1.75rem,1.4rem+1.4vw,2.25rem); text-align:center; font-weight:800;
-  letter-spacing:-.035em; text-transform:uppercase; color:var(--murekkep); margin-bottom:8px;
+  letter-spacing:-.035em; text-transform:uppercase; color:var(--murekkep); margin-bottom:0; line-height:1;
 }
 .auth-slogan { text-align:center; font-size:var(--fs-sm); color:var(--murekkep-3); margin-bottom:var(--sp-4); line-height:1.5; padding-bottom:var(--sp-4); border-bottom:2px dashed var(--cizgi-2); }
 
@@ -391,7 +389,7 @@ input[type=file] { padding:8px; }
 
 /* ---------- YÜKLEME ---------- */
 .yukleme { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--sp-3); padding:var(--sp-4); }
-.yukleme-logo { animation:yukleme-nefes 1.6s ease-in-out infinite; }
+.yukleme-logo { width:4rem; height:4rem; animation:yukleme-nefes 1.6s ease-in-out infinite; }
 @keyframes yukleme-nefes { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
 .yukleme-ad { font-size:var(--fs-lg); font-weight:800; letter-spacing:-.03em; text-transform:uppercase; color:var(--murekkep); }
 .yukleme-cubuk { width:9rem; height:8px; border:2px solid var(--murekkep); border-radius:2px; overflow:hidden; background:var(--kagit-2); }

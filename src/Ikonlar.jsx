@@ -97,3 +97,19 @@ export const BosKutu = (p) => (
     <path d="M12 62h6M15 59v6" stroke="var(--yesil)" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 )
+
+// ---------- MARKA LOGOSU ----------
+// public/yenilogo.png 1299x1211 ve 1.2 MB idi; 44px'lik bir alan için ağırdı.
+// Saydam kenarları kırpılmış, kareye oturtulmuş ve küçültülmüş sürümler
+// kullanılıyor (96px = 15 KB). Retina ekranlar srcSet ile 192px'i alır.
+// width/height öznitelikleri yerleşim kaymasını (CLS) önler; ölçü CSS'ten gelir.
+export const Marka = ({ size = 44, className = '', ...p }) => (
+  <img
+    src="/logo-96.png"
+    srcSet="/logo-96.png 1x, /logo-192.png 2x"
+    width={size} height={size}
+    alt="" aria-hidden="true"
+    className={('marka-logo ' + className).trim()}
+    {...p}
+  />
+)

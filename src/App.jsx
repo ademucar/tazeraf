@@ -433,8 +433,10 @@ export default function App() {
   const authKabuk = (icerik) => (
     <div className="auth-sayfa">
       <div className="auth-kart">
-        <div className="auth-logo"><Ikon.Logo size={56} /></div>
-        <div className="auth-brand">Tazeraf</div>
+        <div className="auth-kimlik">
+          <Ikon.Marka className="auth-logo" size={52} />
+          <div className="auth-brand">Tazeraf</div>
+        </div>
         <p className="auth-slogan">Son kullanma tarihlerini takip et, hiçbir ürünü kaçırma.</p>
         {icerik}
       </div>
@@ -568,7 +570,7 @@ export default function App() {
   if (yukleniyor) {
     return (
       <div className="yukleme">
-        <div className="yukleme-logo"><Ikon.Logo size={64} /></div>
+        <Ikon.Marka className="yukleme-logo" size={64} />
         <div className="yukleme-ad">Tazeraf</div>
         <div className="yukleme-cubuk" role="status" aria-label="Yükleniyor"><span /></div>
       </div>
@@ -728,7 +730,7 @@ export default function App() {
 
   const urunFormu = (
     <>
-      <h2 className="form-title">Yeni Ürün Ekle <span className="form-suslu" aria-hidden="true"><Ikon.Logo size={34} /></span></h2>
+      <h2 className="form-title">Yeni Ürün Ekle</h2>
       <label className="field">Ürün adı</label>
       <input placeholder="Ürün adı girin" value={urunAdi} onChange={e=>setUrunAdi(e.target.value)} />
       <label className="field">Personel (ekleyen)</label>
@@ -771,7 +773,7 @@ export default function App() {
       {menuAcik && <div className="menu-backdrop" onClick={()=>setMenuAcik(false)} />}
       <aside className={'sidebar' + (menuAcik ? ' open' : '')}>
         <div className="brand">
-          <div className="brand-logo"><Ikon.Magaza /></div>
+          <Ikon.Marka className="brand-logo" size={44} />
           <div>
             <div className="brand-name">{isletme.ad}</div>
             <div className="brand-sub">Tazeraf</div>
