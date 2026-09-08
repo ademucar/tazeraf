@@ -6,7 +6,7 @@ import * as Ikon from './Ikonlar'
 // İletişim adresi GERÇEKTEN çalışıyor olmalı — KVKK başvuruları buraya gelir.
 // ---------------------------------------------------------------------------
 const VERI_SORUMLUSU = 'Adem Uçar'
-const ILETISIM = 'iletisim@tazeraf.com.tr'
+const ILETISIM = 'ucaradem317@gmail.com'
 const GUNCELLEME = '8 Eylül 2026'
 
 export default function Gizlilik({ onGeri }) {
