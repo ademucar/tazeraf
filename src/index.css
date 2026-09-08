@@ -431,3 +431,56 @@ input[type=file] { padding:8px; }
   .main { padding-bottom:calc(60px + env(safe-area-inset-bottom)); }
   .sidebar { padding-bottom:calc(20px + env(safe-area-inset-bottom)); }
 }
+
+/* ---------- BELGE SAYFASI (gizlilik politikası) ----------
+   Uzun okuma metni: satır uzunluğu 68 karakterle sınırlı, tipografi
+   uygulamanın geri kalanıyla aynı kağıt-mürekkep dilinde. */
+.belge-sayfa { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+.belge-ust {
+  display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-4); border-bottom:2px solid var(--murekkep);
+  background:var(--kagit-2); position:sticky; top:0; z-index:10; flex-wrap:wrap;
+}
+.belge-marka { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--murekkep); }
+.belge-marka span { font-weight:800; font-size:var(--fs-md); letter-spacing:-.03em; text-transform:uppercase; }
+
+.belge { width:100%; max-width:44rem; margin:0 auto; padding:var(--sp-5) var(--sp-4); flex:1; }
+.belge h1 { font-size:clamp(1.5rem,1.2rem+1.4vw,2.125rem); font-weight:800; letter-spacing:-.03em; margin-bottom:6px; }
+.belge-tarih { font-family:'Space Mono', ui-monospace, monospace; font-size:var(--fs-xs); color:var(--murekkep-3); margin-bottom:var(--sp-4); }
+.belge h2 {
+  font-size:var(--fs-lg); font-weight:800; letter-spacing:-.02em;
+  margin:var(--sp-5) 0 var(--sp-2); padding-bottom:6px; border-bottom:2px solid var(--murekkep);
+}
+.belge p, .belge li { font-size:var(--fs-md); line-height:1.7; color:var(--murekkep-2); max-width:62ch; }
+.belge p { margin-bottom:var(--sp-3); }
+.belge strong { color:var(--murekkep); font-weight:700; }
+.belge ul { margin:0 0 var(--sp-3) 1.25rem; display:grid; gap:8px; }
+.belge li::marker { color:var(--yesil); }
+.belge a { color:var(--yesil); font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+.belge a:hover { color:var(--murekkep); }
+
+/* Özet kutusu: metnin tamamını okumayacak kişi için en üstte net bir cevap */
+.belge-ozet {
+  background:var(--yesil-acik); border:2px solid var(--yesil); border-radius:var(--r-sm);
+  padding:var(--sp-3); margin-bottom:var(--sp-4);
+  font-size:var(--fs-md); line-height:1.65; color:var(--murekkep);
+}
+
+.belge-tablo { width:100%; border-collapse:collapse; margin-bottom:var(--sp-3); font-size:var(--fs-sm); }
+.belge-tablo th, .belge-tablo td { border:1px solid var(--cizgi-2); padding:9px 11px; text-align:left; vertical-align:top; }
+.belge-tablo th { background:var(--kagit-3); font-weight:800; color:var(--murekkep); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:.08em; }
+.belge-tablo td { color:var(--murekkep-2); }
+
+.belge-alt { border-top:2px solid var(--murekkep); padding:var(--sp-4); text-align:center; background:var(--kagit-2); }
+
+/* Giriş ekranı alt bilgisindeki ayraç */
+.dev-credit .ayrac { margin:0 8px; color:var(--cizgi-2); }
+/* Kenar menüdeki gizlilik bağlantısı: çıkış tuşunun hemen üstüne itilir */
+.nav-item.gizlilik-baglanti { margin-top:auto; font-size:var(--fs-sm); color:var(--murekkep-3); }
+.nav-item.gizlilik-baglanti + .nav-item.logout { margin-top:6px; }
+
+/* Dar ekranda tablolar taşmasın, kendi içinde kaysın */
+@media (max-width:40em) {
+  .belge-tablo { display:block; overflow-x:auto; white-space:nowrap; }
+  .belge-ust { padding:var(--sp-3); }
+}

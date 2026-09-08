@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import imageCompression from 'browser-image-compression'
 import { supabase, acilisTipi, acilisModu, ADRES_SIFRE, ADRES_DOGRULAMA, beniHatirlaOku, beniHatirlaYaz } from './supabaseClient'
 import * as Ikon from './Ikonlar'
+import Gizlilik from './Gizlilik'
 
 function durumHesapla(sktTarihi) {
   if (!sktTarihi) return { ad:'—', key:'gecmis', gun:0 }
@@ -133,6 +134,27 @@ export default function App() {
   // olayı beklemeden doğrudan şifre belirleme ekranını açıyoruz.
   const [sifreYenileme, setSifreYenileme] = useState(() => acilisModu() === 'sifre' || acilisTipi() === 'recovery')
   const [sifreDegisti, setSifreDegisti] = useState(false)
+  // Gizlilik politikası ayrı bir adreste (/gizlilik) — böylece bağlantısı
+  // paylaşılabiliyor. Geri dönerken adres çubuğu da düzeltiliyor.
+  const [gizlilikAcik, setGizlilikAcik] = useState(
+    () => typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/gizlilik'
+  )
+
+  function gizlilikAc() {
+    window.history.pushState({}, '', '/gizlilik')
+    setGizlilikAcik(true); setMenuAcik(false)
+  }
+  function gizlilikKapat() {
+    window.history.pushState({}, '', '/')
+    setGizlilikAcik(false)
+  }
+
+  // Tarayıcı geri/ileri tuşları gizlilik sayfasıyla uyumlu çalışsın
+  useEffect(() => {
+    const geri = () => setGizlilikAcik(window.location.pathname.replace(/\/+$/, '') === '/gizlilik')
+    window.addEventListener('popstate', geri)
+    return () => window.removeEventListener('popstate', geri)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -425,6 +447,8 @@ export default function App() {
 
   const gelistirici = (
     <div className="dev-credit">
+      <a href="/gizlilik" onClick={(e)=>{ e.preventDefault(); gizlilikAc() }}>Gizlilik Politikası</a>
+      <span className="ayrac" aria-hidden="true">·</span>
       Developed by <a href="https://ademucar.com.tr/" target="_blank" rel="noopener noreferrer">Adem Uçar</a>
     </div>
   )
@@ -474,6 +498,10 @@ export default function App() {
         onKeyDown={e => { if (e.key === 'Enter' && enterFn) enterFn() }} />
     </div>
   )
+
+  // Gizlilik politikası her şeyin önünde: oturum açılmamışken de,
+  // uygulamanın içindeyken de aynı adresten açılabilmeli.
+  if (gizlilikAcik) return <Gizlilik onGeri={gizlilikKapat} />
 
   // Kayıt olundu, doğrulama bekleniyor
   if (kayitBekliyor) {
@@ -785,6 +813,9 @@ export default function App() {
           <button className={'nav-item' + (sayfa==='kategoriler' ? ' active' : '')} onClick={()=>navGit('kategoriler')}><span className="nav-ikon"><Ikon.Klasor /></span> Kategoriler</button>
           <button className="nav-item" onClick={ayarlariAc}><span className="nav-ikon"><Ikon.Ayar /></span> Ayarlar</button>
         </nav>
+        <button className="nav-item gizlilik-baglanti" onClick={gizlilikAc}>
+          <span className="nav-ikon"><Ikon.Kalkan /></span> Gizlilik Politikası
+        </button>
         <button className="nav-item logout" onClick={cikisYap}><span className="nav-ikon"><Ikon.Cikis /></span> Çıkış Yap</button>
       </aside>
 
