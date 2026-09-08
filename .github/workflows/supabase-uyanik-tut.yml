@@ -1,0 +1,49 @@
+# Supabase ücretsiz planı 7 gün hareketsiz kalan projeleri duraklatıyor.
+# Bu görev veritabanına düzenli olarak küçük bir okuma isteği atarak projeyi
+# etkin sayılmaya devam ettirir. Market uygulamayı düzenli kullanmaya
+# başladığında bu görev gereksiz hale gelir — o zaman silinebilir.
+name: Supabase uyanık tut
+
+on:
+  schedule:
+    # Her gün 06:00 UTC. GitHub zamanlanmış görevleri yoğunlukta geciktirebiliyor;
+    # günlük çalıştırmak 7 günlük pencereye bolca pay bırakır.
+    - cron: '0 6 * * *'
+  workflow_dispatch:        # Panelden elle de çalıştırılabilsin
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Gizli anahtarlar tanımlı mı
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          ANAHTAR: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$ANAHTAR" ]; then
+            echo "::error::SUPABASE_URL veya SUPABASE_ANON_KEY deposu sırrı tanımlı değil."
+            echo "Settings -> Secrets and variables -> Actions bölümünden ekleyin."
+            exit 1
+          fi
+
+      - name: Veritabanına okuma isteği at
+        env:
+          URL: ${{ secrets.SUPABASE_URL }}
+          ANAHTAR: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          # RLS açık olduğu için bu istek veri döndürmez, sadece veritabanına
+          # dokunur — etkinlik saymak için yeterli, güvenlik açığı yaratmaz.
+          kod=$(curl -sS -o /tmp/yanit.txt -w '%{http_code}' --max-time 30 \
+            "$URL/rest/v1/urun?select=id&limit=1" \
+            -H "apikey: $ANAHTAR" \
+            -H "Authorization: Bearer $ANAHTAR")
+
+          echo "HTTP $kod"
+          if [ "$kod" = "200" ]; then
+            echo "Proje ayakta, etkinlik kaydedildi."
+          else
+            echo "::error::Supabase beklenmeyen yanıt verdi ($kod). Proje duraklatılmış olabilir."
+            head -c 300 /tmp/yanit.txt
+            exit 1
+          fi
