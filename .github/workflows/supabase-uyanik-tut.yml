@@ -1,13 +1,18 @@
 # Supabase ücretsiz planı 7 gün hareketsiz kalan projeleri duraklatıyor.
-# Bu görev veritabanına düzenli olarak küçük bir okuma isteği atarak projeyi
-# etkin sayılmaya devam ettirir. Market uygulamayı düzenli kullanmaya
-# başladığında bu görev gereksiz hale gelir — o zaman silinebilir.
+#
+# İLK SÜRÜMDEN ÖĞRENİLEN: anonim anahtarla yapılan basit okuma isteği
+# (RLS yüzünden boş dönen SELECT) 14 gün boyunca her gün başarıyla çalıştı ama
+# Supabase bunu etkinlik SAYMADI, uyarı yine geldi. Bu yüzden artık veritabanına
+# gerçek bir YAZMA yapılıyor: canli_tut tablosundaki zaman damgası güncelleniyor.
+#
+# Gereken SQL (bir kez, Supabase SQL Editor'de): canli_tut tablosu + canli_tut_ping()
+# fonksiyonu. Market uygulamayı düzenli kullanmaya başladığında bu görev silinebilir.
 name: Supabase uyanık tut
 
 on:
   schedule:
-    # Her gün 06:00 UTC. GitHub zamanlanmış görevleri yoğunlukta geciktirebiliyor;
-    # günlük çalıştırmak 7 günlük pencereye bolca pay bırakır.
+    # Her gün 06:00 UTC. GitHub zamanlanmış görevleri geciktirebiliyor
+    # (gözlenen: 3-6 saat); günlük çalışma 7 günlük pencereye bolca pay bırakır.
     - cron: '0 6 * * *'
   workflow_dispatch:        # Panelden elle de çalıştırılabilsin
 
@@ -23,27 +28,37 @@ jobs:
         run: |
           if [ -z "$URL" ] || [ -z "$ANAHTAR" ]; then
             echo "::error::SUPABASE_URL veya SUPABASE_ANON_KEY deposu sırrı tanımlı değil."
-            echo "Settings -> Secrets and variables -> Actions bölümünden ekleyin."
             exit 1
           fi
 
-      - name: Veritabanına okuma isteği at
+      - name: Veritabanına yazma yap (zaman damgasını güncelle)
         env:
           URL: ${{ secrets.SUPABASE_URL }}
           ANAHTAR: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          # RLS açık olduğu için bu istek veri döndürmez, sadece veritabanına
-          # dokunur — etkinlik saymak için yeterli, güvenlik açığı yaratmaz.
           kod=$(curl -sS -o /tmp/yanit.txt -w '%{http_code}' --max-time 30 \
-            "$URL/rest/v1/urun?select=id&limit=1" \
+            -X POST "$URL/rest/v1/rpc/canli_tut_ping" \
             -H "apikey: $ANAHTAR" \
-            -H "Authorization: Bearer $ANAHTAR")
-
+            -H "Authorization: Bearer $ANAHTAR" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          yanit=$(cat /tmp/yanit.txt)
           echo "HTTP $kod"
-          if [ "$kod" = "200" ]; then
-            echo "Proje ayakta, etkinlik kaydedildi."
-          else
-            echo "::error::Supabase beklenmeyen yanıt verdi ($kod). Proje duraklatılmış olabilir."
-            head -c 300 /tmp/yanit.txt
+          echo "Yanıt: $yanit"
+
+          if [ "$kod" = "404" ]; then
+            echo "::error::canli_tut_ping fonksiyonu bulunamadı. SQL kurulumu yapılmamış."
             exit 1
           fi
+          if [ "$kod" != "200" ]; then
+            echo "::error::Supabase beklenmeyen yanıt verdi ($kod). Proje duraklatılmış olabilir."
+            exit 1
+          fi
+
+          # Yanıt güncellenen zaman damgası olmalı — yazmanın gerçekten
+          # gerçekleştiğini böyle doğruluyoruz, sadece 200 dönmesine güvenmiyoruz.
+          if ! echo "$yanit" | grep -qE '"?[0-9]{4}-[0-9]{2}-[0-9]{2}T'; then
+            echo "::error::Yazma doğrulanamadı; beklenen zaman damgası dönmedi."
+            exit 1
+          fi
+          echo "Yazma başarılı, etkinlik kaydedildi."

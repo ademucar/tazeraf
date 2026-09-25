@@ -48,7 +48,11 @@ function hataMetni(error) {
     return 'Bu e-posta ile zaten bir hesap var. "Giriş Yap" sekmesinden giriş yapabilirsin.'
   if (kod === 'email_not_confirmed' || /not confirmed/i.test(m))
     return 'E-posta adresin henüz doğrulanmamış. Sana gönderdiğimiz bağlantıya tıklaman gerekiyor.'
-  if (kod === 'weak_password' || /password.*(weak|should be)/i.test(m))
+  // ÖNCE bu kontrol: Supabase'in metni "should be different" içerdiği için
+  // aşağıdaki zayıf-şifre kuralına takılıp yanlış mesaj gösteriyordu.
+  if (kod === 'same_password' || /different from the old/i.test(m))
+    return 'Yeni şifren eskisiyle aynı olamaz. Farklı bir şifre belirle.'
+  if (kod === 'weak_password' || /password.*(weak|should (be|contain))/i.test(m))
     return 'Şifre yeterince güçlü değil. Yukarıdaki kuralların hepsini karşılamalı.'
   if (kod === 'invalid_credentials' || /invalid login/i.test(m))
     return 'E-posta veya şifre hatalı.'
@@ -281,6 +285,15 @@ export default function App() {
       email, password: sifre, options: { emailRedirectTo: ADRES_DOGRULAMA },
     })
     if (error) { setMesaj('❌ ' + hataMetni(error)); return }
+    // Supabase, e-posta taramasını engellemek için DOĞRULANMIŞ bir adresle
+    // yapılan kayıtta hata vermez; "başarılı" gibi davranır ama identities boş
+    // döner ve hiç mail göndermez. Bunu yakalamazsak kullanıcı "mail gönderdik"
+    // ekranında sonsuza kadar bekler.
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      setSifre('')
+      setMesaj('❌ Bu e-posta ile zaten bir hesap var. Giriş yap ya da "Şifremi unuttum" ile yeni şifre al.')
+      return
+    }
     // Doğrulama açıkken Supabase oturum döndürmez. O durumda kullanıcıyı küçük bir
     // mesajla baş başa bırakmak yerine "e-postanı kontrol et" ekranına alıyoruz.
     const dogrulamaGerekli = !data.session
