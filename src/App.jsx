@@ -692,15 +692,23 @@ export default function App() {
   }
 
   if (!isletme) {
-    return (
-      <div className="auth">
-        <h1>İşletme bilgisi</h1>
-        <p style={{color:'var(--muted)', textAlign:'center', marginBottom:16}}>Devam etmek için işletme adını gir.</p>
-        <input placeholder="İşletme adı (ör. Uçar Market)" value={isletmeAdi} onChange={e=>setIsletmeAdi(e.target.value)} />
-        <button className="btn" onClick={isletmeKaydet} disabled={!isletmeAdi.trim()} style={{marginBottom:10}}>Kaydet</button>
-        <button className="btn ghost" onClick={cikisYap}>Çıkış yap</button>
-        {mesaj && <p className="msg">{mesaj}</p>}
-      </div>
+    // Diğer giriş ekranlarıyla aynı kabuk: ortalanmış kart, logo, alt bilgi
+    return authKabuk(
+      <>
+        <h2 className="auth-title">İşletme bilgisi</h2>
+        <p className="auth-hint">Son bir adım: işletmenin adını gir, panelin hazır.</p>
+        <div className="alan">
+          <span className="alan-ikon"><Ikon.Magaza /></span>
+          <input placeholder="İşletme adı (ör. Uçar Market)" value={isletmeAdi}
+            onChange={e=>setIsletmeAdi(e.target.value)}
+            onKeyDown={e=>{ if (e.key === 'Enter' && isletmeAdi.trim()) isletmeKaydet() }} />
+        </div>
+        <button className="btn" onClick={isletmeKaydet} disabled={!isletmeAdi.trim()}>
+          Kaydet ve devam et <Ikon.Ok />
+        </button>
+        <button className="btn ghost isletme-cikis" onClick={cikisYap}>Çıkış yap</button>
+        {mesaj && <p className={'msg' + (mesaj.startsWith('✅') ? ' ok' : '')}>{mesaj}</p>}
+      </>
     )
   }
 

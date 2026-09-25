@@ -484,3 +484,6 @@ input[type=file] { padding:8px; }
   .belge-tablo { display:block; overflow-x:auto; white-space:nowrap; }
   .belge-ust { padding:var(--sp-3); }
 }
+
+/* İşletme adı ekranında ana butonla çıkış butonu arasında nefes payı */
+.btn.ghost.isletme-cikis { margin-top:var(--sp-2); }
